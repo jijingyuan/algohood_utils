@@ -36,6 +36,7 @@ class InfluxDB:
         try:
             influx_client = InfluxDBClient(self.url, self.token, org=self.org, timeout=None)
             influx_client.buckets_api().create_bucket(bucket_name=_bucket_name)
+            logger.info('{} create finished'.format(_bucket_name))
             return True
 
         except Exception as e:

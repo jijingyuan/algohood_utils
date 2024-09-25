@@ -6,8 +6,8 @@ Created on 2024/9/24 14:18
 """
 import traceback
 
-from algohood_utils.dateUtil import timestamp_utc_datetime_str, timestamp_utc_datetime
-from algohood_utils.loggerUtil import generate_logger
+from algoUtils.dateUtil import timestamp_utc_datetime_str, timestamp_utc_datetime
+from algoUtils.loggerUtil import generate_logger
 from influxdb_client import InfluxDBClient
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 
@@ -73,9 +73,9 @@ class InfluxDB:
                 if _limit:
                     query += f'|> limit(n: {_limit})'
                 if _sort:
-                    query += f'|> sort(columns: ["{_sort}"], desc: true)'
+                    query += f'|> sort(columns: ["{_sort}"], desc: false)'
                 else:
-                    query += f'|> sort(columns: ["_time"], desc: true)'
+                    query += f'|> sort(columns: ["_time"], desc: false)'
 
                 query += f'|> keep(columns: ["_field", "_value"])'
                 table_list = await influx_client.query_api().query(query)

@@ -60,7 +60,7 @@ def log_init(name, level, console, path, folder):
     :return:
     """
     # -------定义日志路径------------
-    BASE_DIR = os.path.abspath('..') if path is None else os.path.abspath(path)
+    BASE_DIR = os.path.abspath('../..') if path is None else os.path.abspath(path)
     LOG_DIR = os.path.join(BASE_DIR, folder)
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)  # 创建路径

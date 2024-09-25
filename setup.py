@@ -8,7 +8,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="algohood_utils",  # 包的名字
+    name="algoUtils",  # 包的名字
     version="0.1",  # 版本号
     author="jingyuan",  # 作者名字
     author_email="jijingyuan@rookiequant.com",  # 作者邮箱

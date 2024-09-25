@@ -5,7 +5,7 @@
 @Author: Jingyuan
 """
 import redis
-from loggerUtil import generate_logger
+from algoUtils.loggerUtil import generate_logger
 
 logger = generate_logger(level='INFO')
 

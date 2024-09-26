@@ -16,6 +16,8 @@ setup(
     packages=find_packages(),  # 自动发现包目录
     install_requires=[
         'ujson',
+        'numpy',
+        'pandas',
         'redis==5.0.8',
         'influxdb-client==1.46.0',
         'aiocsv',

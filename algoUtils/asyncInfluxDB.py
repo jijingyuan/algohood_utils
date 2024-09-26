@@ -19,12 +19,12 @@ class InfluxDB:
         self.url = 'http://{}:{}'.format(_host, _port)
         self.token = _token
         self.org = _org
+        self.influx_client = InfluxDBClient(self.url, self.token, org=self.org, timeout=None)
 
     def get_buckets(self) -> None or list:
         rsp = None
         try:
-            influx_client = InfluxDBClient(self.url, self.token, org=self.org, timeout=None)
-            buckets = influx_client.buckets_api().find_buckets()
+            buckets = self.influx_client.buckets_api().find_buckets()
             return [v.name for v in buckets.buckets if v.name not in ['_tasks', '_monitoring']]
 
         except Exception as e:
@@ -34,8 +34,7 @@ class InfluxDB:
 
     def set_buckets(self, _bucket_name) -> bool:
         try:
-            influx_client = InfluxDBClient(self.url, self.token, org=self.org, timeout=None)
-            influx_client.buckets_api().create_bucket(bucket_name=_bucket_name)
+            self.influx_client.buckets_api().create_bucket(bucket_name=_bucket_name)
             logger.info('{} create finished'.format(_bucket_name))
             return True
 

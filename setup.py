@@ -15,8 +15,10 @@ setup(
     description="utils for algo modules",  # 包的简短描述
     packages=find_packages(),  # 自动发现包目录
     install_requires=[
-        "influxdb-client==1.46.0",
+        'ujson',
+        'redis==5.0.8',
+        'influxdb-client==1.46.0',
         'aiocsv',
-        'aiohttp'
+        'aiohttp==3.10.6'
     ],
 )

@@ -60,7 +60,7 @@ def log_init(name, level, console, path, folder):
     :return:
     """
     # -------定义日志路径------------
-    BASE_DIR = os.path.abspath('../..') if path is None else os.path.abspath(path)
+    BASE_DIR = os.path.abspath('..') if path is None else os.path.abspath(path)
     LOG_DIR = os.path.join(BASE_DIR, folder)
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)  # 创建路径
@@ -94,7 +94,7 @@ def log_init(name, level, console, path, folder):
     return LOGGING
 
 
-def generate_logger(loggername='default', level='DEBUG', console=True, path=None, folder='log'):
+def generate_logger(loggername='default', level='DEBUG', console=True, path=None, folder='algoLog'):
     logging.config.dictConfig(log_init(loggername, level, console, path, folder))
     logger = logging.getLogger(loggername)
     return logger

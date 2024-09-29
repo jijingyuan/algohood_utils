@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on 2024/9/24 14:18
-@file: asyncInfluxDB.py
+@file: InfluxDBUtil.py
 @author: Jerry
 """
 import traceback
@@ -9,12 +9,11 @@ import traceback
 from algoUtils.dateUtil import timestamp_utc_datetime_str, timestamp_utc_datetime
 from algoUtils.loggerUtil import generate_logger
 from influxdb_client import InfluxDBClient
-from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync
 
 logger = generate_logger(level='INFO')
 
 
-class InfluxDB:
+class InfluxClient:
     def __init__(self, _host, _port, _token, _org):
         self.url = 'http://{}:{}'.format(_host, _port)
         self.token = _token
@@ -42,46 +41,44 @@ class InfluxDB:
             logger.error(e)
             return False
 
-    async def set_documents(self, _bucket, _documents) -> bool:
+    def set_documents(self, _bucket, _documents) -> bool:
         try:
-            async with InfluxDBClientAsync(self.url, self.token, self.org, timeout=None) as influx_client:
-                await influx_client.write_api().write(_bucket, record=_documents)
+            self.influx_client.write_api().write(_bucket, record=_documents)
             return True
 
         except Exception as e:
             logger.error(e)
             return False
 
-    async def get_documents(
+    def get_documents(
             self, _bucket, _start_timestamp, _end_timestamp, _measurement=None, _limit=None, _sort=None, _tags=None
     ) -> None or []:
         response = None
         start_str = timestamp_utc_datetime_str(_start_timestamp)
         end_str = timestamp_utc_datetime_str(_end_timestamp)
         try:
-            async with InfluxDBClientAsync(self.url, self.token, self.org, timeout=None) as influx_client:
-                query = f'''
-                    from(bucket: "{_bucket}")
-                    |> range(start: {start_str}, stop: {end_str})
-                    '''
-                if _tags:
-                    for key, value in _tags.items():
-                        query += f'|> filter(fn: (r) => r["{key}"] == "{value}")'
+            query = f'''
+                from(bucket: "{_bucket}")
+                |> range(start: {start_str}, stop: {end_str})
+                '''
+            if _tags:
+                for key, value in _tags.items():
+                    query += f'|> filter(fn: (r) => r["{key}"] == "{value}")'
 
-                if _measurement:
-                    query += f'|> filter(fn: (r) => r._measurement == "{_measurement}")'
-                if _limit:
-                    query += f'|> limit(n: {_limit})'
-                if _sort:
-                    query += f'|> sort(columns: ["{_sort}"], desc: false)'
-                else:
-                    query += f'|> sort(columns: ["_time"], desc: false)'
+            if _measurement:
+                query += f'|> filter(fn: (r) => r._measurement == "{_measurement}")'
+            if _limit:
+                query += f'|> limit(n: {_limit})'
+            if _sort:
+                query += f'|> sort(columns: ["{_sort}"], desc: false)'
+            else:
+                query += f'|> sort(columns: ["_time"], desc: false)'
 
-                query += f'|> keep(columns: ["_field", "_value"])'
-                table_list = await influx_client.query_api().query(query)
-                response = []
-                for tmp in zip(*[v.records for v in table_list]):
-                    response.append({v.values['_field']: v.values['_value'] for v in tmp})
+            query += f'|> keep(columns: ["_field", "_value"])'
+            table_list = self.influx_client.query_api().query(query)
+            response = []
+            for tmp in zip(*[v.records for v in table_list]):
+                response.append({v.values['_field']: v.values['_value'] for v in tmp})
 
         except Exception as e:
             logger.error(traceback.format_exc())
@@ -89,12 +86,11 @@ class InfluxDB:
         finally:
             return response
 
-    async def remove_documents_by_filter(self, _bucket, _measurement, _start_timestamp, _end_timestamp) -> bool:
+    def remove_documents_by_filter(self, _bucket, _measurement, _start_timestamp, _end_timestamp) -> bool:
         start_datetime = timestamp_utc_datetime(_start_timestamp)
         end_datetime = timestamp_utc_datetime(_end_timestamp)
         try:
-            async with InfluxDBClientAsync(self.url, self.token, self.org, timeout=None) as influx_client:
-                await influx_client.delete_api().delete(start_datetime, end_datetime, '', _bucket)
+            self.influx_client.delete_api().delete(start_datetime, end_datetime, '', _bucket)
             return True
 
         except Exception as e:

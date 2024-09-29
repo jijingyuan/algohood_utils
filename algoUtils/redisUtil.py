@@ -100,14 +100,11 @@ class RedisClient:
         start_ts = _start_ts if isinstance(_start_ts, str) else int(_start_ts * 1000000)
         end_ts = _end_ts if isinstance(_end_ts, str) else int(_end_ts * 1000000)
         try:
-            t1 = time.time()
             self.client.select(_db)
             ts = self.client.ts()
             batch = ts.mrange(
                 start_ts, end_ts, filters=['{}={}'.format(k, v) for k, v in _labels.items()], count=_limit
             )
-            duration = time.time() - t1
-            print('{}|{}\n'.format(self.client.connection_pool.connection_kwargs['port'], duration))
             return batch or []
 
         except Exception as e:

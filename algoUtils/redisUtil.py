@@ -4,12 +4,6 @@
 @file: redisClient.py
 @author: Jerry
 """
-# -*- coding: utf-8 -*-
-"""
-@Create: 2024/9/10 10:46
-@File: redisClient.py
-@Author: Jingyuan
-"""
 import time
 
 import redis
@@ -169,10 +163,10 @@ if __name__ == '__main__':
     t1 = time.time()
     for port in range(7001, 7041):
         client = RedisClient('localhost', port)
-        task = pool.submit(client.get_ts_batch_by_labels, 0, start_timestamp, end_timestamp, labels, 1000)
+        task = pool.submit(client.get_ts_batch_by_labels, 0, start_timestamp, end_timestamp, labels, 2000)
         tasks.append(task)
 
-    wait(tasks, return_when='ALL_COMPLETED')
+    wait(tasks)
     # for task in tasks:
     #     task.result()
 

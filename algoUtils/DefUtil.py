@@ -4,6 +4,7 @@
 @File: DefUtil.py
 @Author: Jingyuan
 """
+from uuid import uuid4
 
 
 class Order:
@@ -17,6 +18,7 @@ class Order:
             _position,
             _feature,
     ):
+        self.order_id = str(uuid4())
         self.__bind_id = _bind_id
         self.__symbol = _symbol
         self.__order_type = _order_type

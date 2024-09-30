@@ -105,7 +105,7 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     token = 'G1oUiAo_2FnthaDn4OWSFah1zACmYv84bkp5InbggnXMaDbVp2CO1h0UDbeYRutpwdg8r_Gm7a1hN4SBiU_4Fg=='
     org = 'AlgohoodBackend'
-    client = InfluxDB('localhost', 8096, token, org)
+    client = InfluxClient('localhost', 8096, token, org)
 
     bucket = 'Data'
     measurement = 'trade'

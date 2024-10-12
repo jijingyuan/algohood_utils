@@ -90,6 +90,17 @@ class RedisClient:
             logger.error(e)
             return
 
+    def get_last_by_key(self, _db, _key):
+        try:
+            self.client.select(_db)
+            ts = self.client.ts()
+            batch = ts.get(_key)
+            return batch or {}
+
+        except Exception as e:
+            logger.error(e)
+            return
+
     def get_ts_batch_by_labels(self, _db, _start_ts, _end_ts, _labels: dict, _limit=None) -> list or None:
         start_ts = _start_ts if isinstance(_start_ts, str) else int(_start_ts * 1000000)
         end_ts = _end_ts if isinstance(_end_ts, str) else int(_end_ts * 1000000)
@@ -99,6 +110,17 @@ class RedisClient:
             batch = ts.mrange(
                 start_ts, end_ts, filters=['{}={}'.format(k, v) for k, v in _labels.items()], count=_limit
             )
+            return batch or []
+
+        except Exception as e:
+            logger.error(e)
+            return
+
+    def get_last_batch_by_labels(self, _db, _labels):
+        try:
+            self.client.select(_db)
+            ts = self.client.ts()
+            batch = ts.mget(filters=['{}={}'.format(k, v) for k, v in _labels.items()])
             return batch or []
 
         except Exception as e:
@@ -152,24 +174,27 @@ class RedisClient:
 
 
 if __name__ == '__main__':
-    from concurrent.futures import ThreadPoolExecutor, wait
+    # from concurrent.futures import ThreadPoolExecutor, wait
+    #
+    # pool = ThreadPoolExecutor(max_workers=50)
+    #
+    # tasks = []
+    # # start_timestamp = '-'
+    # start_timestamp = 17275801981
+    # end_timestamp = '+'
+    # labels = {'pair': 'btc_usdt'}
+    # t1 = time.time()
+    # for port in range(7001, 7041):
+    #     client = RedisClient('localhost', port)
+    #     task = pool.submit(client.get_ts_batch_by_labels, 0, start_timestamp, end_timestamp, labels, 2000)
+    #     tasks.append(task)
+    #
+    # # wait(tasks)
+    # rsp = [v.result() for v in tasks]
 
-    pool = ThreadPoolExecutor(max_workers=50)
-
-    tasks = []
-    start_timestamp = '-'
-    end_timestamp = '+'
-    labels = {'pair': 'btc_usdt'}
-    t1 = time.time()
-    for port in range(7001, 7041):
-        client = RedisClient('localhost', port)
-        task = pool.submit(client.get_ts_batch_by_labels, 0, start_timestamp, end_timestamp, labels, 2000)
-        tasks.append(task)
-
-    wait(tasks)
-    # for task in tasks:
-    #     task.result()
-
-    print(time.time() - t1)
     # create ts key
     # client.create_ts_key(10, 'test')
+
+    client = RedisClient('localhost', 2001)
+    rsp = client.get_last_batch_by_labels(1, {'data_type': 'min'})
+    aa = 1

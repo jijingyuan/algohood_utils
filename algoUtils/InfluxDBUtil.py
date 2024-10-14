@@ -18,7 +18,7 @@ class InfluxClient:
         self.url = 'http://{}:{}'.format(_host, _port)
         self.token = _token
         self.org = _org
-        self.influx_client = InfluxDBClient(self.url, self.token, org=self.org, timeout=None)
+        self.influx_client = InfluxDBClient(self.url, self.token, org=self.org, timeout=None, enable_gzip=True)
 
     def get_buckets(self) -> None or list:
         rsp = None

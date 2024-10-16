@@ -15,15 +15,20 @@ logger = generate_logger(level='INFO')
 
 class InfluxClient:
     def __init__(self, _host, _port, _token, _org):
-        self.url = 'http://{}:{}'.format(_host, _port)
         self.token = _token
         self.org = _org
-        self.influx_client = InfluxDBClient(self.url, self.token, org=self.org, timeout=None, enable_gzip=True)
+        self.influx_client = InfluxDBClient(
+            'http://{}:{}'.format(_host, _port), self.token, org=self.org, timeout=None, enable_gzip=True
+        )
+        self.bucket_api = self.influx_client.buckets_api()
+        self.writer_api = self.influx_client.write_api()
+        self.reader_api = self.influx_client.query_api()
+        self.delete_api = self.influx_client.delete_api()
 
     def get_buckets(self) -> None or list:
         rsp = None
         try:
-            buckets = self.influx_client.buckets_api().find_buckets()
+            buckets = self.bucket_api.find_buckets()
             return [v.name for v in buckets.buckets if v.name not in ['_tasks', '_monitoring']]
 
         except Exception as e:
@@ -33,7 +38,7 @@ class InfluxClient:
 
     def set_buckets(self, _bucket_name) -> bool:
         try:
-            self.influx_client.buckets_api().create_bucket(bucket_name=_bucket_name)
+            self.bucket_api.create_bucket(bucket_name=_bucket_name)
             logger.info('{} create finished'.format(_bucket_name))
             return True
 
@@ -43,7 +48,7 @@ class InfluxClient:
 
     def set_documents(self, _bucket, _documents) -> bool:
         try:
-            self.influx_client.write_api().write(_bucket, record=_documents)
+            self.writer_api.write(_bucket, record=_documents)
             return True
 
         except Exception as e:
@@ -75,7 +80,7 @@ class InfluxClient:
                 query += f'|> sort(columns: ["_time"], desc: false)'
 
             query += f'|> keep(columns: ["_field", "_value"])'
-            table_list = self.influx_client.query_api().query(query)
+            table_list = self.reader_api.query(query)
             response = []
             for tmp in zip(*[v.records for v in table_list]):
                 response.append({v.values['_field']: v.values['_value'] for v in tmp})
@@ -90,7 +95,7 @@ class InfluxClient:
         start_datetime = timestamp_utc_datetime(_start_timestamp)
         end_datetime = timestamp_utc_datetime(_end_timestamp)
         try:
-            self.influx_client.delete_api().delete(start_datetime, end_datetime, '', _bucket)
+            self.delete_api.delete(start_datetime, end_datetime, '', _bucket)
             return True
 
         except Exception as e:

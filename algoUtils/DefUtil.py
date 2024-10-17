@@ -215,11 +215,11 @@ class StrategyBase:
         pass
 
     @abc.abstractmethod
-    def on_order(self, _order_id):
+    def on_order(self, _order_info):
         pass
 
     @abc.abstractmethod
-    def on_sniffer(self, _sniffer_id):
+    def on_sniffer(self, _sniffer_info):
         pass
 
     @abc.abstractmethod

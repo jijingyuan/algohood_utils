@@ -95,7 +95,6 @@ class OrderBase:
             _exchange,
             _target_price,
             _operator,
-            _order_type,
             _expire=None,
             _delay=None
     ):
@@ -109,7 +108,6 @@ class OrderBase:
             'exchange': _exchange,
             'target_price': _target_price,
             'operator': _operator,
-            'order_type': _order_type,
             'expire': _expire,
             'delay': _delay,
         }
@@ -221,7 +219,6 @@ class OrderBase:
             _symbol,
             _operator,
             _target_price,
-            _order_type,
             _expire=None,
             _delay=None
     ) -> str:

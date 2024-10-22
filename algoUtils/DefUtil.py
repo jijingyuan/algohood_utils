@@ -8,6 +8,7 @@ import abc
 import uuid
 from typing import Optional, List, Dict
 from queue import PriorityQueue
+from .onlineLoggerUtil import OnlineLogger
 
 
 class SignalBase:
@@ -41,7 +42,7 @@ class TargetBase:
 
 
 class OrderBase:
-    STATUS_DICT = {
+    ORDER_STATUS = {
         'pending': 0,
         'waiting': 1,
         'triggered': 2,
@@ -52,15 +53,27 @@ class OrderBase:
         'filled': 5
     }
 
+    SNIFFER_STATUS = {
+        'pending': 0,
+        'waiting': 1,
+        'triggered': 2,
+        'canceled': 2,
+        'error': 2
+    }
+
     def __init__(self, _exec_dict):
         self.exec_dict = _exec_dict
         self.current_timestamp = None
         self._orders = {}
         self._sniffers = {}
         self._status_info = {}
+        self._price = {}
 
     def update_current_timestamp(self, _timestamp):
         self.current_timestamp = _timestamp
+
+    def update_symbol_price(self, _symbol, _price):
+        self._price[_symbol] = _price
 
     def get_order_info(self, _order_id):
         return self._orders.get(_order_id)
@@ -75,7 +88,7 @@ class OrderBase:
         if _receive_timestamp is not None:
             self._orders[_order_id]['receive_timestamp'] = _receive_timestamp
 
-    def _generate_sniffer(
+    def _generate_target_sniffer(
             self,
             _bind_id,
             _symbol,
@@ -103,6 +116,34 @@ class OrderBase:
 
         return order_id
 
+    def _generate_trailing_sniffer(
+            self,
+            _bind_id,
+            _symbol,
+            _exchange,
+            _operator,
+            _back_pct,
+            _smooth=None,
+            _expire=None,
+            _delay=None
+    ):
+
+        order_id = str(uuid.uuid4())
+        _, exchange = _symbol.split('|')
+        self._sniffers[order_id] = {
+            'bind_id': _bind_id,
+            'order_id': order_id,
+            'symbol': _symbol,
+            'exchange': _exchange,
+            'operator': _operator,
+            'back_pct': _back_pct,
+            '_smooth': _smooth,
+            'expire': _expire,
+            'delay': _delay,
+        }
+
+        return order_id
+
     @abc.abstractmethod
     def update_events(self, _event_q: PriorityQueue):
         pass
@@ -115,12 +156,12 @@ class OrderBase:
             _order_type,
             _action,
             _position,
+            _amount,
             _feature=None,
             _expire=None,
             _delay=None,
             _condition=None,
             _price=None,
-            _amount=None,
             _client_id=None,
     ):
         order_id = str(uuid.uuid4())
@@ -133,12 +174,12 @@ class OrderBase:
             'order_type': _order_type,
             'action': _action,
             'position': _position,
+            'amount': _amount,
             'feature': _feature,
             'expire': _expire,
             'delay': _delay,
             'condition': _condition,
             'price': _price,
-            'amount': _amount,
             'current_timestamp': self.current_timestamp
         }
         return order_id
@@ -164,23 +205,36 @@ class OrderBase:
             _order_type,
             _action,
             _position,
+            _amount,
             _feature=None,
             _expire=None,
             _delay=None,
             _condition=None,
             _price=None,
-            _amount=None,
     ) -> str:
         pass
 
     @abc.abstractmethod
-    def place_sniffer(
+    def place_target_sniffer(
             self,
             _bind_id,
             _symbol,
             _operator,
             _target_price,
             _order_type,
+            _expire=None,
+            _delay=None
+    ) -> str:
+        pass
+
+    @abc.abstractmethod
+    def place_trailing_sniffer(
+            self,
+            _bind_id,
+            _symbol,
+            _operator,
+            _back_pct,
+            _smooth=None,
             _expire=None,
             _delay=None
     ) -> str:
@@ -202,13 +256,21 @@ class OrderBase:
     def cancel_sniffer(self, _order_id, _delay=None):
         pass
 
+    @abc.abstractmethod
+    def get_trading_amount(self, _symbol):
+        pass
+
 
 class StrategyBase:
     def __init__(self):
         self.order_mgr: Optional[OrderBase] = None
+        self.logger: Optional[OnlineLogger] = None
 
     def update_order_mgr(self, _order_mgr):
         self.order_mgr = _order_mgr
+
+    def update_logger(self, _type):
+        self.logger = OnlineLogger(_type)
 
     @abc.abstractmethod
     def on_signal(self, _signal):

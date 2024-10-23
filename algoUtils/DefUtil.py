@@ -178,7 +178,9 @@ class OrderBase:
             'delay': _delay,
             'condition': _condition,
             'price': _price,
-            'current_timestamp': self.current_timestamp
+            'current_timestamp': self.current_timestamp,
+            'execute_price': None,
+            'execute_amount': 0
         }
         return order_id
 

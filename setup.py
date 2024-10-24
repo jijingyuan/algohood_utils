@@ -23,6 +23,8 @@ setup(
         'redis==5.0.8',
         'influxdb-client==1.46.0',
         'aiocsv',
-        'aiohttp==3.10.6'
+        'aiohttp==3.10.6',
+        'pyzmq==26.2.0',
+        'tornado==6.4.1'
     ],
 )

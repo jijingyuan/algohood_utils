@@ -55,6 +55,38 @@ class AsyncRedisClient:
         finally:
             await redis_client.aclose()
 
+    async def add_str(self, _db, _key, _value) -> bool:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            await redis_client.set(_key, _value)
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
+    async def add_incr(self, _db, _key) -> bool:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            await redis_client.incr(_key)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
+    async def add_decr(self, _db, _key) -> bool:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            await redis_client.incr(_key)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
     async def get_hash(self, _db, _key, _field) -> bytes or None:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
@@ -187,6 +219,17 @@ class AsyncRedisClient:
 
         finally:
             await redis_client.aclose()
+
+    async def push(self, _db, _key, _batch: list) -> bool:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            await redis_client.rpush(_key, *_batch)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
 
 
 if __name__ == '__main__':

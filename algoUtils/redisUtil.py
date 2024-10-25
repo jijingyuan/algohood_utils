@@ -172,6 +172,16 @@ class RedisClient:
             logger.error(e)
             return False
 
+    def push(self, _db, _key, _batch: list) -> bool:
+        try:
+            self.client.select(_db)
+            self.client.rpush(_key, *_batch)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
 
 if __name__ == '__main__':
     # from concurrent.futures import ThreadPoolExecutor, wait

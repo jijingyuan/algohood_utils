@@ -15,8 +15,6 @@ from .loggerUtil import generate_logger
 
 logger = generate_logger()
 
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
 
 class ReqZmq:
 

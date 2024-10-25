@@ -47,6 +47,35 @@ class RedisClient:
             logger.error(e)
             return False
 
+    def add_str(self, _db, _key, _value) -> bool:
+        try:
+            self.client.select(_db)
+            self.client.set(_key, _value)
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
+    def add_incr(self, _db, _key) -> bool:
+        try:
+            self.client.select(_db)
+            self.client.incr(_key)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
+    def add_decr(self, _db, _key) -> bool:
+        try:
+            self.client.select(_db)
+            self.client.incr(_key)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
     def get_hash(self, _db, _key, _field) -> str or None:
         try:
             self.client.select(_db)

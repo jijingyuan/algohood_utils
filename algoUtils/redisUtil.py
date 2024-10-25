@@ -56,6 +56,16 @@ class RedisClient:
             logger.error(e)
             return False
 
+    def get_str(self, _db, _key) -> str or None:
+        try:
+            self.client.select(_db)
+            value = self.client.get(_key)
+            return value or ''
+
+        except Exception as e:
+            logger.error(e)
+            return
+
     def add_incr(self, _db, _key) -> bool:
         try:
             self.client.select(_db)

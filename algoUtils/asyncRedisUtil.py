@@ -65,6 +65,17 @@ class AsyncRedisClient:
             logger.error(e)
             return False
 
+    async def get_str(self, _db, _key) -> bytes or None:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            value = await redis_client.get(_key)
+            return value or b''
+
+        except Exception as e:
+            logger.error(e)
+            return
+
     async def add_incr(self, _db, _key) -> bool:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:

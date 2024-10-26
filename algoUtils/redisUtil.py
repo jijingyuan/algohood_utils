@@ -66,7 +66,7 @@ class RedisClient:
             logger.error(e)
             return
 
-    def add_incr(self, _db, _key) -> bool:
+    def incr(self, _db, _key) -> bool:
         try:
             self.client.select(_db)
             self.client.incr(_key)
@@ -76,10 +76,10 @@ class RedisClient:
             logger.error(e)
             return False
 
-    def add_decr(self, _db, _key) -> bool:
+    def decr(self, _db, _key) -> bool:
         try:
             self.client.select(_db)
-            self.client.incr(_key)
+            self.client.decr(_key)
             return True
 
         except Exception as e:
@@ -221,6 +221,16 @@ class RedisClient:
             logger.error(e)
             return False
 
+    def pull(self, _db, _key) -> bytes or None:
+        try:
+            self.client.select(_db)
+            rsp = self.client.rpop(_key)
+            return rsp if rsp else b''
+
+        except Exception as e:
+            logger.error(e)
+            return
+
 
 if __name__ == '__main__':
     # from concurrent.futures import ThreadPoolExecutor, wait
@@ -244,6 +254,6 @@ if __name__ == '__main__':
     # create ts key
     # client.create_ts_key(10, 'test')
 
-    client = RedisClient('localhost', 2001)
-    rsp = client.get_last_batch_by_labels(1, {'data_type': 'min'})
+    # client = RedisClient('localhost', 2001)
+    # rsp = client.get_last_batch_by_labels(1, {'data_type': 'min'})
     aa = 1

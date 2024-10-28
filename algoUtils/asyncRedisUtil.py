@@ -76,22 +76,22 @@ class AsyncRedisClient:
             logger.error(e)
             return
 
-    async def incr(self, _db, _key) -> bool:
+    async def incr(self, _db, _key, _amount=1) -> bool:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
             await redis_client.select(_db)
-            await redis_client.incr(_key)
+            await redis_client.incrby(_key, _amount)
             return True
 
         except Exception as e:
             logger.error(e)
             return False
 
-    async def decr(self, _db, _key) -> bool:
+    async def decr(self, _db, _key, _amount=1) -> bool:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
             await redis_client.select(_db)
-            await redis_client.incr(_key)
+            await redis_client.decrby(_key, _amount)
             return True
 
         except Exception as e:

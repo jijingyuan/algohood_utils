@@ -66,20 +66,20 @@ class RedisClient:
             logger.error(e)
             return
 
-    def incr(self, _db, _key) -> bool:
+    def incr(self, _db, _key, _amount=1) -> bool:
         try:
             self.client.select(_db)
-            self.client.incr(_key)
+            self.client.incrby(_key, _amount)
             return True
 
         except Exception as e:
             logger.error(e)
             return False
 
-    def decr(self, _db, _key) -> bool:
+    def decr(self, _db, _key, _amount=1) -> bool:
         try:
             self.client.select(_db)
-            self.client.decr(_key)
+            self.client.decrby(_key, _amount)
             return True
 
         except Exception as e:

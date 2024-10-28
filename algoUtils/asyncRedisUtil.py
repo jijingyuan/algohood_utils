@@ -242,16 +242,16 @@ class AsyncRedisClient:
             logger.error(e)
             return False
         
-    async def pull(self, _db, _key, _amount=1) -> bool:
+    async def pull(self, _db, _key, _amount=1) -> list or None:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
             await redis_client.select(_db)
-            await redis_client.rpop(_key, _amount)
-            return True
+            rsp = await redis_client.rpop(_key, _amount)
+            return rsp or []
 
         except Exception as e:
             logger.error(e)
-            return False
+            return
 
 
 if __name__ == '__main__':

@@ -260,15 +260,16 @@ if __name__ == '__main__':
 
     loop = asyncio.get_event_loop()
 
-    client = AsyncRedisClient('localhost', 7002)
-    labels = {'exchange': 'binance_future'}
-    start_timestamp = int((time.time() - 60 * 60 * 12) * 1000000)
-    end_timestamp = int((time.time()) * 1000000)
-    coro = client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 1000)
+    client = AsyncRedisClient('localhost', 2001)
+    # labels = {'exchange': 'binance_future'}
+    # start_timestamp = int((time.time() - 60 * 60 * 12) * 1000000)
+    # end_timestamp = int((time.time()) * 1000000)
+    # coro = client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 1000)
     # coro = client.get_ts_batch_by_labels(0, '-', '+', labels, 1000)
 
     # key = 'btc_usdt|binance_future|trade|timestamp'
     # coro = client.get_ts_batch_by_key(0, key, start_timestamp, end_timestamp, 1000)
+    coro = client.pull(4, '1730094018600676_test', 500)
     rsp = loop.run_until_complete(coro)
 
     # pairs = ['eth_usdt', 'btc_usdt']

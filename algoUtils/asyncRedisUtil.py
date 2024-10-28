@@ -241,6 +241,17 @@ class AsyncRedisClient:
         except Exception as e:
             logger.error(e)
             return False
+        
+    async def pull(self, _db, _key, _amount=1) -> bool:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            await redis_client.rpop(_key, _amount)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
 
 
 if __name__ == '__main__':

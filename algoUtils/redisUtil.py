@@ -177,6 +177,17 @@ class RedisClient:
             logger.error(e)
             return False
 
+    def add_ts_label(self, _db, _key, _labels, _duplicate_policy='last') -> bool:
+        try:
+            self.client.select(_db)
+            ts = self.client.ts()
+            ts.alter(_key, labels=_labels, duplicate_policy=_duplicate_policy)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
     def add_ts_point(self, _db, _key, _timestamp, _value) -> bool:
         try:
             self.client.select(_db)
@@ -231,6 +242,16 @@ class RedisClient:
             logger.error(e)
             return
 
+    def get_info(self, _db, _key):
+        try:
+            self.client.select(_db)
+            ts = self.client.ts()
+            return ts.info(_key)
+
+        except Exception as e:
+            logger.error(e)
+            return
+
 
 if __name__ == '__main__':
     # from concurrent.futures import ThreadPoolExecutor, wait
@@ -254,6 +275,7 @@ if __name__ == '__main__':
     # create ts key
     # client.create_ts_key(10, 'test')
 
-    # client = RedisClient('localhost', 2001)
-    # rsp = client.get_last_batch_by_labels(1, {'data_type': 'min'})
+    client = RedisClient('localhost', 2001)
+    rsp = client.get_ts_batch_by_labels(1, '-', '+', {'pair': 'eth_fdusd'})
+    # rsp = client.get_info(1, 'btc_usdt|binance_future|trade|ts')
     aa = 1

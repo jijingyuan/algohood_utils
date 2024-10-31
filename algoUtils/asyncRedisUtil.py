@@ -152,15 +152,48 @@ class AsyncRedisClient:
         finally:
             await redis_client.aclose()
 
-    async def get_ts_batch_by_labels(self, _db, _start_ts, _end_ts, _labels: dict, _limit=None) -> list or None:
+    async def get_last_by_key(self, _db, _key) -> None or tuple:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
             await redis_client.select(_db)
             ts = redis_client.ts()
-            batch = await ts.mrange(
-                _start_ts, _end_ts, filters=['{}={}'.format(k, v) for k, v in _labels.items()], count=_limit
-            )
+            rsp = await ts.get(_key)
+            return rsp or tuple()
 
+        except Exception as e:
+            logger.error(e)
+            return
+
+        finally:
+            await redis_client.aclose()
+
+    async def get_ts_batch_by_labels(self, _db, _start_ts, _end_ts, _labels: dict, _limit=None) -> list or None:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        start_ts = _start_ts if isinstance(_start_ts, str) else int(_start_ts * 1000000)
+        end_ts = _end_ts if isinstance(_end_ts, str) else int(_end_ts * 1000000)
+        try:
+            await redis_client.select(_db)
+            ts = redis_client.ts()
+            t1 = time.time()
+            batch = await ts.mrange(
+                start_ts, end_ts, filters=['{}={}'.format(k, v) for k, v in _labels.items()], count=_limit
+            )
+            print(time.time() - t1)
+            return batch or []
+
+        except Exception as e:
+            logger.error(e)
+            return
+
+        finally:
+            await redis_client.aclose()
+
+    async def get_last_batch_by_labels(self, _db, _labels) -> None or list:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            ts = redis_client.ts()
+            batch = await ts.mget(filters=['{}={}'.format(k, v) for k, v in _labels.items()])
             return batch or []
 
         except Exception as e:
@@ -241,13 +274,24 @@ class AsyncRedisClient:
         except Exception as e:
             logger.error(e)
             return False
-        
+
     async def pull(self, _db, _key, _amount=1) -> list or None:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
             await redis_client.select(_db)
             rsp = await redis_client.rpop(_key, _amount)
             return rsp or []
+
+        except Exception as e:
+            logger.error(e)
+            return
+
+    async def info(self, _db, _key):
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            ts = redis_client.ts()
+            return ts.info(_key)
 
         except Exception as e:
             logger.error(e)
@@ -260,7 +304,22 @@ if __name__ == '__main__':
 
     loop = asyncio.get_event_loop()
 
-    client = AsyncRedisClient('localhost', 2001)
+    client = AsyncRedisClient('localhost', 9001)
+    data_shard = loop.run_until_complete(client.get_hash_all(0, 'data_shard'))
+    client_list = [AsyncRedisClient(*k.decode().split(':')) for k in data_shard.keys()]
+
+    tasks = []
+    start_timestamp = '-'
+    # start_timestamp = 17275801981
+    end_timestamp = '+'
+    labels = {'pair': 'btc_usdt', 'exchange': 'binance_future'}
+    t1 = time.time()
+    for client in client_list:
+        # tasks.append(client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 100000))
+        tasks.append(client.get_last_by_key(0, 'btc_usdt|binance_future|trade|close'))
+
+    loop.run_until_complete(asyncio.gather(*tasks))
+    print(time.time() - t1)
     # labels = {'exchange': 'binance_future'}
     # start_timestamp = int((time.time() - 60 * 60 * 12) * 1000000)
     # end_timestamp = int((time.time()) * 1000000)
@@ -269,8 +328,8 @@ if __name__ == '__main__':
 
     # key = 'btc_usdt|binance_future|trade|timestamp'
     # coro = client.get_ts_batch_by_key(0, key, start_timestamp, end_timestamp, 1000)
-    coro = client.pull(4, '1730094018600676_test', 500)
-    rsp = loop.run_until_complete(coro)
+    # coro = client.pull(4, '1730094018600676_test', 500)
+    # rsp = loop.run_until_complete(coro)
 
     # pairs = ['eth_usdt', 'btc_usdt']
     # fields = ['close', 'amount', 'timestamp', 'action']

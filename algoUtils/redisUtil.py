@@ -129,12 +129,12 @@ class RedisClient:
             logger.error(e)
             return
 
-    def get_last_by_key(self, _db, _key):
+    def get_last_by_key(self, _db, _key) -> None or tuple:
         try:
             self.client.select(_db)
             ts = self.client.ts()
-            batch = ts.get(_key)
-            return batch or {}
+            rsp = ts.get(_key)
+            return rsp or tuple()
 
         except Exception as e:
             logger.error(e)
@@ -146,9 +146,11 @@ class RedisClient:
         try:
             self.client.select(_db)
             ts = self.client.ts()
+            t1 = time.time()
             batch = ts.mrange(
                 start_ts, end_ts, filters=['{}={}'.format(k, v) for k, v in _labels.items()], count=_limit
             )
+            print(time.time() - t1)
             return batch or []
 
         except Exception as e:
@@ -254,28 +256,40 @@ class RedisClient:
 
 
 if __name__ == '__main__':
-    # from concurrent.futures import ThreadPoolExecutor, wait
-    #
-    # pool = ThreadPoolExecutor(max_workers=50)
-    #
-    # tasks = []
-    # # start_timestamp = '-'
+    from concurrent.futures import ThreadPoolExecutor, wait
+
+    pool = ThreadPoolExecutor(max_workers=50)
+    client = RedisClient('localhost', 9001)
+    data_shard = client.get_hash_all(0, 'data_shard')
+    client_list = [RedisClient(*k.decode().split(':')) for k in data_shard.keys()]
+
+    tasks = []
+    start_timestamp = '-'
     # start_timestamp = 17275801981
-    # end_timestamp = '+'
-    # labels = {'pair': 'btc_usdt'}
-    # t1 = time.time()
-    # for port in range(7001, 7041):
-    #     client = RedisClient('localhost', port)
-    #     task = pool.submit(client.get_ts_batch_by_labels, 0, start_timestamp, end_timestamp, labels, 2000)
-    #     tasks.append(task)
-    #
-    # # wait(tasks)
+    end_timestamp = '+'
+    labels = {'pair': 'btc_usdt', 'exchange': 'binance_future'}
+    t1 = time.time()
+    for client in client_list:
+        task = pool.submit(client.get_ts_batch_by_labels, 0, start_timestamp, end_timestamp, labels, 100000)
+        tasks.append(task)
+
+    wait(tasks)
     # rsp = [v.result() for v in tasks]
+    print(time.time() - t1)
 
     # create ts key
     # client.create_ts_key(10, 'test')
 
-    client = RedisClient('localhost', 2001)
-    rsp = client.get_ts_batch_by_labels(1, '-', '+', {'pair': 'eth_fdusd'})
-    # rsp = client.get_info(1, 'btc_usdt|binance_future|trade|ts')
+    # client = RedisClient('localhost', 2001)
+    # keys = client.get_db_keys(1)
+    # rsp = client.get_ts_batch_by_labels(1, '-', '+', {'pair': 'btc_usdt'})
+    # labels = []
+    # for key in keys:
+    #     pair, exchange, data_type, index_type = key.decode().split('|')
+    #     client.add_ts_label(
+    #         1, key, {'pair': pair, 'exchange': exchange, 'data_type': data_type, 'index_type': index_type}
+    #     )
+    #     print('{} finished'.format(key))
+    # rsp = client.get_info(1, 'btc_usdt|binance_future|trade|max')
+    # rsp = client.get_ts_batch_by_key(1, 'btc_usdt|binance_future|trade|max', '-', '+')
     aa = 1

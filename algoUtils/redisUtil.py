@@ -146,11 +146,9 @@ class RedisClient:
         try:
             self.client.select(_db)
             ts = self.client.ts()
-            t1 = time.time()
             batch = ts.mrange(
                 start_ts, end_ts, filters=['{}={}'.format(k, v) for k, v in _labels.items()], count=_limit
             )
-            print(time.time() - t1)
             return batch or []
 
         except Exception as e:

@@ -174,11 +174,9 @@ class AsyncRedisClient:
         try:
             await redis_client.select(_db)
             ts = redis_client.ts()
-            t1 = time.time()
             batch = await ts.mrange(
                 start_ts, end_ts, filters=['{}={}'.format(k, v) for k, v in _labels.items()], count=_limit
             )
-            print(time.time() - t1)
             return batch or []
 
         except Exception as e:
@@ -315,8 +313,8 @@ if __name__ == '__main__':
     labels = {'pair': 'btc_usdt', 'exchange': 'binance_future'}
     t1 = time.time()
     for client in client_list:
-        # tasks.append(client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 100000))
-        tasks.append(client.get_last_by_key(0, 'btc_usdt|binance_future|trade|close'))
+        tasks.append(client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 100000))
+        # tasks.append(client.get_last_by_key(0, 'btc_usdt|binance_future|trade|close'))
 
     loop.run_until_complete(asyncio.gather(*tasks))
     print(time.time() - t1)

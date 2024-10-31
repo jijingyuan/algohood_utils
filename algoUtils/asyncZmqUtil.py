@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 @Create: 2024/10/24 10:55
-@File: zmqUtil.py
+@File: asyncZmqUtil.py
 @Author: Jingyuan
 """
 
-import asyncio
-
 import ujson as json
-import zmq
 import zmq.asyncio
 
 from .loggerUtil import generate_logger
@@ -16,54 +13,36 @@ from .loggerUtil import generate_logger
 logger = generate_logger()
 
 
-class ReqZmq:
+class AsyncReqZmq:
 
     def __init__(self, _port, _host=None):
-        self.context = zmq.Context()
+        self.context = zmq.asyncio.Context()
         self.socket = self.context.socket(zmq.REQ)
         self.socket.connect('tcp://{}:{}'.format(_host or 'localhost', _port))
 
-    def send_msg(self, _msg):
+    async def send_msg(self, _msg):
         try:
-            self.socket.send_json(_msg)
-            return self.socket.recv_json() or ''
+            await self.socket.send_string(json.dumps(_msg))
+            rsp = await self.socket.recv()
+            return json.loads(rsp)
 
         except Exception as e:
             logger.error(e)
 
 
-class RepZmq:
+class AsyncRepZmq:
     def __init__(self, _port, _host=None):
-        self.context = zmq.Context()
+        self.context = zmq.asyncio.Context()
         self.socket = self.context.socket(zmq.REP)
         self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
 
-    def recv_msg(self):
-        return self.socket.recv_json()
+    async def recv_msg(self):
+        rsp = await self.socket.recv()
+        return json.loads(rsp)
 
-    def send_msg(self, _msg):
+    async def send_msg(self, _msg):
         try:
-            self.socket.send_json(_msg)
-            return True
-
-        except Exception as e:
-            logger.error(e)
-            return False
-
-
-class RouterZmq:
-    def __init__(self, _port, _host=None):
-        self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.ROUTER)
-        self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
-
-    def recv_msg(self):
-        return self.socket.recv_multipart()
-
-    def send_msg(self, _request_id, _msg):
-        try:
-            parts = [_request_id, b'', json.dumps(_msg).encode()]
-            self.socket.send_multipart(parts)
+            await self.socket.send_string(json.dumps(_msg))
             return True
 
         except Exception as e:
@@ -78,7 +57,8 @@ class AsyncRouterZmq:
         self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
 
     async def recv_msg(self):
-        return await self.socket.recv_multipart()
+        request_id, _, msg = await self.socket.recv_multipart()
+        return request_id, json.loads(msg.decode())
 
     async def send_msg(self, _request_id, _msg):
         try:

@@ -143,7 +143,7 @@ class OrderBase:
         return order_id
 
     @abc.abstractmethod
-    def update_events(self, _event_q: PriorityQueue):
+    async def update_events(self, _event_q: PriorityQueue):
         pass
 
     def _generate_order(
@@ -198,7 +198,7 @@ class OrderBase:
         pass
 
     @abc.abstractmethod
-    def place_order(
+    async def place_order(
             self,
             _bind_id,
             _symbol,
@@ -215,7 +215,7 @@ class OrderBase:
         pass
 
     @abc.abstractmethod
-    def place_target_sniffer(
+    async def place_target_sniffer(
             self,
             _bind_id,
             _symbol,
@@ -227,7 +227,7 @@ class OrderBase:
         pass
 
     @abc.abstractmethod
-    def place_trailing_sniffer(
+    async def place_trailing_sniffer(
             self,
             _bind_id,
             _symbol,
@@ -240,19 +240,19 @@ class OrderBase:
         pass
 
     @abc.abstractmethod
-    def edit_order(self, _order_id, **kwargs):
+    async def edit_order(self, _order_id, **kwargs):
         pass
 
     @abc.abstractmethod
-    def edit_sniffer(self, _sniffer_id, **kwargs):
+    async def edit_sniffer(self, _sniffer_id, **kwargs):
         pass
 
     @abc.abstractmethod
-    def cancel_order(self, _order_id, _delay=None):
+    async def cancel_order(self, _order_id, _delay=None):
         pass
 
     @abc.abstractmethod
-    def cancel_sniffer(self, _order_id, _delay=None):
+    async def cancel_sniffer(self, _order_id, _delay=None):
         pass
 
     @abc.abstractmethod
@@ -272,25 +272,25 @@ class StrategyBase:
         self.logger = OnlineLogger(_type)
 
     @abc.abstractmethod
-    def on_signal(self, _signal):
+    async def on_signal(self, _signal):
         pass
 
     @abc.abstractmethod
-    def on_order(self, _order_info):
+    async def on_order(self, _order_info):
         pass
 
     @abc.abstractmethod
-    def on_sniffer(self, _sniffer_info):
+    async def on_sniffer(self, _sniffer_info):
         pass
 
     @abc.abstractmethod
-    def on_timer(self, _event):
+    async def on_timer(self, _event):
         pass
 
     @abc.abstractmethod
-    def on_start(self, _event):
+    async def on_start(self, _event):
         pass
 
     @abc.abstractmethod
-    def on_stop(self, _event):
+    async def on_stop(self, _event):
         pass

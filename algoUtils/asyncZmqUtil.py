@@ -55,7 +55,7 @@ class AsyncPushZmq:
     def __init__(self, _host, _port):
         self.context = zmq.asyncio.Context()
         self.socket = self.context.socket(zmq.PUSH)
-        self.socket.connect('tcp://{}:{}'.format(_host or '*', _port))
+        self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
 
     async def push_msg(self, _msg):
         await self.socket.send_string(json.dumps(_msg))
@@ -65,7 +65,7 @@ class AsyncPullZmq:
     def __init__(self, _host, _port):
         self.context = zmq.asyncio.Context()
         self.socket = self.context.socket(zmq.PULL)
-        self.socket.bind('tcp://{}:{}'.format(_host or 'localhost', _port))
+        self.socket.connect('tcp://{}:{}'.format(_host or 'localhost', _port))
 
     async def pull_msg(self):
         rsp = await self.socket.recv()

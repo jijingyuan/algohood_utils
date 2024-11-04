@@ -30,26 +30,6 @@ class AsyncReqZmq:
             logger.error(e)
 
 
-class AsyncRepZmq:
-    def __init__(self, _port, _host=None):
-        self.context = zmq.asyncio.Context()
-        self.socket = self.context.socket(zmq.REP)
-        self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
-
-    async def recv_msg(self):
-        rsp = await self.socket.recv()
-        return json.loads(rsp)
-
-    async def send_msg(self, _msg):
-        try:
-            await self.socket.send_string(json.dumps(_msg))
-            return True
-
-        except Exception as e:
-            logger.error(e)
-            return False
-
-
 class AsyncRouterZmq:
     def __init__(self, _port, _host=None):
         self.context = zmq.asyncio.Context()
@@ -69,3 +49,24 @@ class AsyncRouterZmq:
         except Exception as e:
             logger.error(e)
             return False
+
+
+class AsyncPushZmq:
+    def __init__(self, _host, _port):
+        self.context = zmq.asyncio.Context()
+        self.socket = self.context.socket(zmq.PUSH)
+        self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
+
+    async def push_msg(self, _msg):
+        await self.socket.send_string(json.dumps(_msg))
+
+
+class AsyncPullZmq:
+    def __init__(self, _host, _port):
+        self.context = zmq.asyncio.Context()
+        self.socket = self.context.socket(zmq.PULL)
+        self.socket.connect('tcp://{}:{}'.format(_host or 'localhost', _port))
+
+    async def pull_msg(self):
+        rsp = await self.socket.recv()
+        return json.loads(rsp)

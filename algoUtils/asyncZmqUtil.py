@@ -4,9 +4,11 @@
 @File: asyncZmqUtil.py
 @Author: Jingyuan
 """
-
+import numpy as np
+import time
 import ujson as json
 import zmq.asyncio
+from collections import deque
 
 from .loggerUtil import generate_logger
 
@@ -58,7 +60,9 @@ class AsyncPubZmq:
         self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
 
     async def pub_msg(self, _channel, _msg):
-        await self.socket.send_string('{}||{}'.format(_channel, json.dumps(_msg)))
+        msg = json.dumps(_msg)
+        ts = int(time.time() * 1000000)
+        await self.socket.send_string('{}|{}||{}'.format(_channel, ts, msg))
 
 
 class AsyncSubZmq:
@@ -67,6 +71,7 @@ class AsyncSubZmq:
         self.socket = self.context.socket(zmq.SUB)
         self.socket.connect('tcp://{}:{}'.format(_host or 'localhost', _port))
         self.subscribe_sets = set()
+        self.ts_d = deque(maxlen=1000)
 
     async def subscribe(self, _channels):
         channels = [_channels] if isinstance(_channels, str) else _channels
@@ -85,7 +90,14 @@ class AsyncSubZmq:
     async def recv_msg(self):
         await self.socket.recv_string()
         rsp = await self.socket.recv()
-        channel, msg = rsp.split(b'||')
+        channel_info, msg = rsp.split(b'||')
+        channel, ts = channel_info.split(b'|')
+        self.ts_d.append(int(time.time() * 1000000) - int(ts.decode()))
+        print('{}|{}|{}'.format(
+            int(np.percentile(self.ts_d, 50)),
+            int(np.percentile(self.ts_d, 90)),
+            int(np.percentile(self.ts_d, 99))
+        ))
         return channel.decode(), json.loads(msg)
 
 

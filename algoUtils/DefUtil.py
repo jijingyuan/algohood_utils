@@ -6,7 +6,7 @@
 """
 import abc
 import uuid
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, AnyStr
 from queue import PriorityQueue
 from .onlineLoggerUtil import OnlineLogger
 
@@ -39,6 +39,46 @@ class TargetBase:
         :return: {**kwargs: stats that you need for analyzing}
         """
         return
+
+
+class OptimizeBase:
+
+    def __init__(self):
+        self.__data_mgr = None
+        self.__realized_ret = {}
+        self.__unrealized_ret = {}
+
+    def update_inits(self, _data_mgr, _realized_ret, _unrealized_ret):
+        self.__data_mgr = _data_mgr
+        self.__realized_ret = _realized_ret
+        self.__unrealized_ret = _unrealized_ret
+
+    def get_realized_ret(self):
+        return self.__realized_ret.copy()
+
+    def get_unrealized_ret(self):
+        return self.__unrealized_ret.copy()
+
+    def get_backward_data(self, _symbols, _backward_window):
+        pass
+
+    @abc.abstractmethod
+    def handle_event(self, _event_type, _event) -> Optional[List[AnyStr]]:
+        pass
+
+
+class RiskBase:
+
+    @abc.abstractmethod
+    def handle_event(self, _event_type, _event):
+        pass
+
+
+class LiquidityBase:
+
+    @abc.abstractmethod
+    def handle_event(self, _event_type, _event):
+        pass
 
 
 class OrderBase:

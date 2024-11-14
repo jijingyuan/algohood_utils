@@ -20,6 +20,7 @@ setup(
         'ujson',
         'numpy',
         'pandas',
+        'websockets==14',
         'redis==5.0.8',
         'influxdb-client==1.46.0',
         'aiocsv',

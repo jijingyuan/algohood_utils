@@ -24,9 +24,9 @@ class AsyncReqZmq:
 
     async def send_msg(self, _msg):
         try:
-            await self.socket.send_string(json.dumps(_msg))
+            await self.socket.send(_msg)
             rsp = await self.socket.recv()
-            return json.loads(rsp)
+            return rsp
 
         except Exception as e:
             logger.error(e)
@@ -40,11 +40,11 @@ class AsyncRouterZmq:
 
     async def recv_msg(self):
         request_id, _, msg = await self.socket.recv_multipart()
-        return request_id, json.loads(msg.decode())
+        return request_id, msg
 
     async def send_msg(self, _request_id, _msg):
         try:
-            parts = [_request_id, b'', json.dumps(_msg).encode()]
+            parts = [_request_id, b'', _msg]
             await self.socket.send_multipart(parts)
             return True
 
@@ -60,8 +60,7 @@ class AsyncPubZmq:
         self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
 
     async def pub_msg(self, _channel, _msg):
-        msg = json.dumps(_msg)
-        await self.socket.send_string('{}||{}'.format(_channel, msg))
+        await self.socket.send(b'||'.join([_channel, _msg]))
 
 
 class AsyncSubZmq:
@@ -88,25 +87,4 @@ class AsyncSubZmq:
     async def recv_msg(self):
         rsp = await self.socket.recv()
         channel, msg = rsp.split(b'||')
-        return channel.decode(), json.loads(msg)
-
-
-class AsyncPushZmq:
-    def __init__(self, _host, _port):
-        self.context = zmq.asyncio.Context()
-        self.socket = self.context.socket(zmq.PUSH)
-        self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
-
-    async def push_msg(self, _msg):
-        await self.socket.send_string(json.dumps(_msg))
-
-
-class AsyncPullZmq:
-    def __init__(self, _host, _port):
-        self.context = zmq.asyncio.Context()
-        self.socket = self.context.socket(zmq.PULL)
-        self.socket.connect('tcp://{}:{}'.format(_host or 'localhost', _port))
-
-    async def pull_msg(self):
-        rsp = await self.socket.recv()
-        return json.loads(rsp)
+        return channel, msg

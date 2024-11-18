@@ -29,6 +29,7 @@ class ClientProtocol(QuicConnectionProtocol):
         self.event_mgr = _event_mgr
         self.stop = False
         self.cache = b''
+        self.writer = None
 
     async def keep_alive(self):
         while not self.stop:
@@ -75,10 +76,13 @@ class ClientProtocol(QuicConnectionProtocol):
         else:
             logger.debug(_event)
 
-    def send_msg(self, _msg: bytes):
-        prefix = np.int32(len(_msg)).tobytes()
-        self._quic.send_stream_data(0, prefix + _msg)
-        self.transmit()
+    async def send_msg(self, _msg: bytes):
+        if self.writer is None:
+            _, self.writer = await self.create_stream()
+
+        prefix = struct.pack('>I', len(_msg))
+        self.writer.write(prefix + _msg)
+        await self.writer.drain()
 
 
 class ServerProtocol(QuicConnectionProtocol):
@@ -86,11 +90,7 @@ class ServerProtocol(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         self.event_mgr = _event_mgr
         self.cache = bytearray()
-
-    @staticmethod
-    def debug_ctx(ctx):
-        print("Context:", ctx)
-        return len(ctx.data)
+        self.writer = None
 
     def handle_cache(self):
         while True:
@@ -121,10 +121,13 @@ class ServerProtocol(QuicConnectionProtocol):
         else:
             logger.debug(_event)
 
-    def send_msg(self, _msg: bytes):
+    async def send_msg(self, _msg: bytes):
+        if self.writer is None:
+            _, self.writer = await self.create_stream()
+
         prefix = struct.pack('>I', len(_msg))
-        self._quic.send_stream_data(1, prefix + _msg)
-        self.transmit()
+        self.writer.write(prefix + _msg)
+        await self.writer.drain()
 
 
 class ServerMgr:

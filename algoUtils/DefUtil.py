@@ -5,7 +5,7 @@
 @Author: Jingyuan
 """
 import abc
-import random
+import asyncio
 import uuid
 from queue import PriorityQueue
 from typing import Optional, List, Dict, AnyStr
@@ -40,11 +40,9 @@ class QuicEventBase:
 
         conn.send_msg(_msg)
 
-    def send_all(self, _msg: bytes):
-        connections = list(self.connections.values())
-        random.shuffle(connections)
-        for conn in connections:
-            conn.send_msg(_msg)
+    async def send_all(self, _msg: bytes):
+        tasks = [v.send_msg(_msg) for v in self.connections.values()]
+        await asyncio.gather(*tasks)
 
 
 class SignalBase:

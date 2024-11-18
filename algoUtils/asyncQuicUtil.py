@@ -5,13 +5,11 @@
 @Author: Jingyuan
 """
 import asyncio
-import time
+import struct
 import traceback
 from pathlib import Path
-import numpy as np
-import struct
-from collections import deque
 
+import numpy as np
 import ujson as json
 from aioquic.asyncio.client import connect
 from aioquic.asyncio.protocol import QuicConnectionProtocol
@@ -22,7 +20,7 @@ from aioquic.quic.events import StreamDataReceived, ConnectionTerminated, Handsh
 from .DefUtil import QuicEventBase
 from .loggerUtil import generate_logger
 
-logger = generate_logger(level='INFO')
+logger = generate_logger(level='DEBUG')
 
 
 class ClientProtocol(QuicConnectionProtocol):
@@ -48,6 +46,9 @@ class ClientProtocol(QuicConnectionProtocol):
             if len(self.cache) > 4:
                 count = struct.unpack('>I', self.cache[:4])
                 end = count[0] + 4
+                if len(self.cache) < end:
+                    break
+
                 self.event_mgr.on_stream(self.cache[4: end])
                 self.cache = self.cache[end:]
             else:

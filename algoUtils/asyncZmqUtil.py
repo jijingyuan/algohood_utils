@@ -60,7 +60,7 @@ class AsyncPubZmq:
         self.socket.bind('tcp://{}:{}'.format(_host or '*', _port))
 
     async def pub_msg(self, _channel, _msg):
-        await self.socket.send(b' '.join([_channel.encode(), _msg]))
+        await self.socket.send(b' '.join([_channel, _msg]))
 
 
 class AsyncSubZmq:
@@ -87,4 +87,4 @@ class AsyncSubZmq:
     async def recv_msg(self):
         rsp = await self.socket.recv()
         channel, msg = rsp.split(b' ', 1)
-        return channel.decode(), msg
+        return channel, msg

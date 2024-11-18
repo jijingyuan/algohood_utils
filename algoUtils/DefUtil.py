@@ -5,10 +5,46 @@
 @Author: Jingyuan
 """
 import abc
+import random
 import uuid
-from typing import Optional, List, Dict, AnyStr
 from queue import PriorityQueue
+from typing import Optional, List, Dict, AnyStr
+
+from .loggerUtil import generate_logger
 from .onlineLoggerUtil import OnlineLogger
+
+logger = generate_logger()
+
+
+class QuicEventBase:
+    def __init__(self):
+        self.connections = {}
+
+    @abc.abstractmethod
+    def on_stream(self, _data):
+        pass
+
+    @abc.abstractmethod
+    def on_connected(self, _host_id: bytes):
+        pass
+
+    @abc.abstractmethod
+    def on_disconnected(self, _host_id: bytes):
+        pass
+
+    def send_msg(self, _host_id: bytes, _msg: bytes):
+        conn = self.connections.get(_host_id)
+        if not conn:
+            logger.error('{} is not available'.format(_host_id))
+            return
+
+        conn.send_msg(_msg)
+
+    def send_all(self, _msg: bytes):
+        connections = list(self.connections.values())
+        random.shuffle(connections)
+        for conn in connections:
+            conn.send_msg(_msg)
 
 
 class SignalBase:

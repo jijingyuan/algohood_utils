@@ -55,6 +55,9 @@ class ClientProtocol(QuicConnectionProtocol):
             else:
                 break
 
+    async def create_writer(self):
+        _, self.writer = await self.create_stream()
+
     def quic_event_received(self, _event):
         if isinstance(_event, ConnectionTerminated):
             self.event_mgr.connections.pop(self._quic.host_cid, None)
@@ -63,6 +66,7 @@ class ClientProtocol(QuicConnectionProtocol):
             self.event_mgr.on_disconnected(self._quic.host_cid)
 
         elif isinstance(_event, HandshakeCompleted):
+            asyncio.get_event_loop().create_task(self.create_writer())
             self.event_mgr.connections[self._quic.host_cid] = self
             logger.info('connected host id: {}'.format(self._quic.host_cid))
             asyncio.get_event_loop().create_task(self.keep_alive())
@@ -77,9 +81,6 @@ class ClientProtocol(QuicConnectionProtocol):
             logger.debug(_event)
 
     async def send_msg(self, _msg: bytes):
-        if self.writer is None:
-            _, self.writer = await self.create_stream()
-
         prefix = struct.pack('>I', len(_msg))
         self.writer.write(prefix + _msg)
         await self.writer.drain()
@@ -102,6 +103,9 @@ class ServerProtocol(QuicConnectionProtocol):
             else:
                 break
 
+    async def create_writer(self):
+        _, self.writer = await self.create_stream()
+
     def quic_event_received(self, _event):
         if isinstance(_event, ConnectionTerminated):
             self.event_mgr.connections.pop(self._quic.host_cid, None)
@@ -109,6 +113,7 @@ class ServerProtocol(QuicConnectionProtocol):
             self.event_mgr.on_disconnected(self._quic.host_cid)
 
         elif isinstance(_event, HandshakeCompleted):
+            asyncio.get_event_loop().create_task(self.create_writer())
             self.event_mgr.connections[self._quic.host_cid] = self
             logger.info('connected host id: {}'.format(self._quic.host_cid))
             self.event_mgr.on_connected(self._quic.host_cid)
@@ -122,9 +127,6 @@ class ServerProtocol(QuicConnectionProtocol):
             logger.debug(_event)
 
     async def send_msg(self, _msg: bytes):
-        if self.writer is None:
-            _, self.writer = await self.create_stream()
-
         prefix = struct.pack('>I', len(_msg))
         self.writer.write(prefix + _msg)
         await self.writer.drain()

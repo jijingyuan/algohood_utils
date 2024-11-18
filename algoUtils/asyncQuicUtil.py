@@ -136,7 +136,7 @@ class ServerMgr:
         configuration.load_cert_chain(certfile=Path("cert.pem"), keyfile=Path("key.pem"))
 
         await serve(
-            'localhost',
+            '0.0.0.0',
             self.port,
             configuration=configuration,
             create_protocol=lambda *args, **kwargs: ServerProtocol(*args, **kwargs, _event_mgr=self.event_mgr),

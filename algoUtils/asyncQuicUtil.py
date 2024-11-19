@@ -29,7 +29,6 @@ class ClientProtocol(QuicConnectionProtocol):
         self.event_mgr = _event_mgr
         self.stop = False
         self.cache = b''
-        self.writer = None
 
     async def keep_alive(self):
         while not self.stop:
@@ -55,9 +54,6 @@ class ClientProtocol(QuicConnectionProtocol):
             else:
                 break
 
-    async def create_writer(self):
-        _, self.writer = await self.create_stream()
-
     def quic_event_received(self, _event):
         if isinstance(_event, ConnectionTerminated):
             self.event_mgr.connections.pop(self._quic.host_cid, None)
@@ -66,7 +62,6 @@ class ClientProtocol(QuicConnectionProtocol):
             self.event_mgr.on_disconnected(self._quic.host_cid)
 
         elif isinstance(_event, HandshakeCompleted):
-            asyncio.get_event_loop().create_task(self.create_writer())
             self.event_mgr.connections[self._quic.host_cid] = self
             logger.info('connected host id: {}'.format(self._quic.host_cid))
             asyncio.get_event_loop().create_task(self.keep_alive())
@@ -80,10 +75,10 @@ class ClientProtocol(QuicConnectionProtocol):
         else:
             logger.debug(_event)
 
-    async def send_msg(self, _msg: bytes):
-        prefix = struct.pack('>I', len(_msg))
-        self.writer.write(prefix + _msg)
-        await self.writer.drain()
+    def send_msg(self, _msg: bytes):
+        prefix = np.int32(len(_msg)).tobytes()
+        self._quic.send_stream_data(0, prefix + _msg)
+        self.transmit()
 
 
 class ServerProtocol(QuicConnectionProtocol):
@@ -91,7 +86,6 @@ class ServerProtocol(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         self.event_mgr = _event_mgr
         self.cache = bytearray()
-        self.writer = None
 
     def handle_cache(self):
         while True:
@@ -103,9 +97,6 @@ class ServerProtocol(QuicConnectionProtocol):
             else:
                 break
 
-    async def create_writer(self):
-        _, self.writer = await self.create_stream()
-
     def quic_event_received(self, _event):
         if isinstance(_event, ConnectionTerminated):
             self.event_mgr.connections.pop(self._quic.host_cid, None)
@@ -113,7 +104,6 @@ class ServerProtocol(QuicConnectionProtocol):
             self.event_mgr.on_disconnected(self._quic.host_cid)
 
         elif isinstance(_event, HandshakeCompleted):
-            asyncio.get_event_loop().create_task(self.create_writer())
             self.event_mgr.connections[self._quic.host_cid] = self
             logger.info('connected host id: {}'.format(self._quic.host_cid))
             self.event_mgr.on_connected(self._quic.host_cid)
@@ -126,10 +116,10 @@ class ServerProtocol(QuicConnectionProtocol):
         else:
             logger.debug(_event)
 
-    async def send_msg(self, _msg: bytes):
+    def send_msg(self, _msg: bytes):
         prefix = struct.pack('>I', len(_msg))
-        self.writer.write(prefix + _msg)
-        await self.writer.drain()
+        self._quic.send_stream_data(1, prefix + _msg)
+        self.transmit()
 
 
 class ServerMgr:

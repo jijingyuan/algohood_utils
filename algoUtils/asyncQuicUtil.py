@@ -28,6 +28,7 @@ class ClientProtocol(QuicConnectionProtocol):
         self.event_mgr = _event_mgr
         self.stop = False
         self.cache = b''
+        self.stream_id = None
 
     async def keep_alive(self):
         while not self.stop:
@@ -68,6 +69,9 @@ class ClientProtocol(QuicConnectionProtocol):
 
         elif isinstance(_event, StreamDataReceived):
             if _event.data:
+                if not self.stream_id:
+                    self.stream_id = _event.stream_id
+
                 self.cache += _event.data
                 self.handle_cache()
 
@@ -75,8 +79,12 @@ class ClientProtocol(QuicConnectionProtocol):
             logger.debug(_event)
 
     def send_msg(self, _msg: bytes):
+        if not self.stream_id:
+            logger.error('stream id is not available')
+            return
+
         prefix = struct.pack('>H', len(_msg))
-        self._quic.send_stream_data(0, prefix + _msg)
+        self._quic.send_stream_data(self.stream_id, prefix + _msg)
         self.transmit()
 
 

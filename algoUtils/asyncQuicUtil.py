@@ -117,6 +117,8 @@ class ServerProtocol(QuicConnectionProtocol):
             self.event_mgr.connections[self._quic.host_cid] = self
             logger.info('connected host id: {}'.format(self._quic.host_cid))
             self.event_mgr.on_connected(self._quic.host_cid)
+            self._quic.send_stream_data(2, b'accepted')
+            self.transmit()
 
         elif isinstance(_event, StreamDataReceived):
             if _event.data:

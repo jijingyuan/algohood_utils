@@ -9,7 +9,6 @@ import struct
 import traceback
 from pathlib import Path
 
-import numpy as np
 import ujson as json
 from aioquic.asyncio.client import connect
 from aioquic.asyncio.protocol import QuicConnectionProtocol
@@ -43,13 +42,13 @@ class ClientProtocol(QuicConnectionProtocol):
 
     def handle_cache(self):
         while True:
-            if len(self.cache) > 4:
-                count = struct.unpack('>I', self.cache[:4])
-                end = count[0] + 4
+            if len(self.cache) > 2:
+                count = struct.unpack('>H', self.cache[:2])
+                end = count[0] + 2
                 if len(self.cache) < end:
                     break
 
-                self.event_mgr.on_stream(self.cache[4: end])
+                self.event_mgr.on_stream(self.cache[2: end])
                 self.cache = self.cache[end:]
             else:
                 break
@@ -76,8 +75,8 @@ class ClientProtocol(QuicConnectionProtocol):
             logger.debug(_event)
 
     def send_msg(self, _msg: bytes):
-        prefix = np.int32(len(_msg)).tobytes()
-        self._quic.send_stream_data(0, prefix + _msg)
+        prefix = struct.pack('>H', len(_msg))
+        self._quic.send_stream_data(1, prefix + _msg)
         self.transmit()
 
 
@@ -89,10 +88,13 @@ class ServerProtocol(QuicConnectionProtocol):
 
     def handle_cache(self):
         while True:
-            if len(self.cache) > 4:
-                count = struct.unpack('>I', self.cache[:4])
-                end = count[0] + 4
-                self.event_mgr.on_stream(self.cache[4: end])
+            if len(self.cache) > 2:
+                count = struct.unpack('>H', self.cache[:2])
+                end = count[0] + 2
+                if len(self.cache) < end:
+                    break
+
+                self.event_mgr.on_stream(self.cache[2: end])
                 self.cache = self.cache[end:]
             else:
                 break
@@ -117,7 +119,7 @@ class ServerProtocol(QuicConnectionProtocol):
             logger.debug(_event)
 
     def send_msg(self, _msg: bytes):
-        prefix = struct.pack('>I', len(_msg))
+        prefix = struct.pack('>H', len(_msg))
         self._quic.send_stream_data(1, prefix + _msg)
         self.transmit()
 

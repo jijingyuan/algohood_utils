@@ -76,7 +76,7 @@ class ClientProtocol(QuicConnectionProtocol):
 
     def send_msg(self, _msg: bytes):
         prefix = struct.pack('>H', len(_msg))
-        self._quic.send_stream_data(1, prefix + _msg)
+        self._quic.send_stream_data(0, prefix + _msg)
         self.transmit()
 
 
@@ -84,7 +84,7 @@ class ServerProtocol(QuicConnectionProtocol):
     def __init__(self, *args, _event_mgr: QuicEventBase, **kwargs):
         super().__init__(*args, **kwargs)
         self.event_mgr = _event_mgr
-        self.cache = bytearray()
+        self.cache = b''
 
     def handle_cache(self):
         while True:

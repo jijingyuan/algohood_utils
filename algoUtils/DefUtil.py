@@ -5,7 +5,7 @@
 @Author: Jingyuan
 """
 import abc
-import random
+import asyncio
 import uuid
 from queue import PriorityQueue
 from typing import Optional, List, Dict, AnyStr
@@ -19,32 +19,34 @@ logger = generate_logger()
 class QuicEventBase:
     def __init__(self):
         self.connections = {}
+        self.cache = asyncio.Queue()
 
-    @abc.abstractmethod
-    def on_stream(self, _data):
+    def on_stream(self, _msg: bytes):
         pass
 
-    @abc.abstractmethod
     def on_connected(self, _host_id: bytes):
         pass
 
-    @abc.abstractmethod
     def on_disconnected(self, _host_id: bytes):
         pass
 
-    def send_msg(self, _host_id: bytes, _msg: bytes):
+    async def cache_data(self, _data):
+        await self.cache.put(_data)
+
+    async def get_data(self):
+        return await self.cache.get()
+
+    async def send_msg(self, _host_id: bytes, _msg: bytes):
         conn = self.connections.get(_host_id)
         if not conn:
             logger.error('{} is not available'.format(_host_id))
             return
 
-        conn.send_msg(_msg)
+        await conn.send_msg(_msg)
 
-    def send_all(self, _msg: bytes):
-        connections = list(self.connections.values())
-        random.shuffle(connections)
-        for conn in connections:
-            conn.send_msg(_msg)
+    async def send_all(self, _msg: bytes):
+        tasks = [v.send_msg(_msg) for v in self.connections.values()]
+        await asyncio.gather(*tasks)
 
 
 class SignalBase:

@@ -21,17 +21,11 @@ class QuicEventBase:
         self.connections = {}
         self.cache = asyncio.Queue()
 
-    def on_stream(self, _msg: bytes):
-        pass
-
     def on_connected(self, _host_id: bytes):
         pass
 
     def on_disconnected(self, _host_id: bytes):
         pass
-
-    async def cache_data(self, _data):
-        await self.cache.put(_data)
 
     async def get_data(self):
         return await self.cache.get()
@@ -47,6 +41,9 @@ class QuicEventBase:
     async def send_all(self, _msg: bytes):
         tasks = [v.send_msg(_msg) for v in self.connections.values()]
         await asyncio.gather(*tasks)
+
+    async def loop_service(self):
+        pass
 
 
 class SignalBase:

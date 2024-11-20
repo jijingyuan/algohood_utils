@@ -29,9 +29,8 @@ class MyProtocol(QuicConnectionProtocol):
         self.event_mgr = _event_mgr
         self.is_client = _is_client
         self.stop = False
-        self.parts = b''
+        self.parts = bytearray()
         self.writer: Optional[asyncio.StreamWriter] = None
-        self.reader = asyncio.Queue()
 
     async def keep_alive(self):
         while not self.stop:
@@ -44,7 +43,7 @@ class MyProtocol(QuicConnectionProtocol):
             finally:
                 await asyncio.sleep(10)
 
-    async def handle_cache(self):
+    def handle_cache(self):
         while True:
             if len(self.parts) <= 2:
                 return
@@ -54,19 +53,8 @@ class MyProtocol(QuicConnectionProtocol):
             if len(self.parts) < end:
                 return
 
-            await self.event_mgr.cache_data(self.parts[2: end])
+            self.event_mgr.cache.put_nowait((self._quic.host_cid, self.parts[2: end]))
             self.parts = self.parts[end:]
-
-    async def listen_reader(self):
-        while not self.stop:
-            try:
-                msg = await self.reader.get()
-                self.parts += msg
-                await self.handle_cache()
-
-            except Exception as e:
-                logger.error(e)
-                await asyncio.sleep(1)
 
     async def generate_stream(self):
         _, self.writer = await self.create_stream(True)
@@ -82,13 +70,13 @@ class MyProtocol(QuicConnectionProtocol):
             self.event_mgr.connections[self._quic.host_cid] = self
             logger.info('connected host id: {}'.format(self._quic.host_cid))
             asyncio.get_event_loop().create_task(self.generate_stream())
-            asyncio.get_event_loop().create_task(self.listen_reader())
             self.event_mgr.on_connected(self._quic.host_cid)
             if self.is_client:
                 asyncio.get_event_loop().create_task(self.keep_alive())
 
         elif isinstance(_event, StreamDataReceived):
-            self.reader.put_nowait(_event.data)
+            self.parts.extend(_event.data)
+            self.handle_cache()
 
     async def send_msg(self, _msg: bytes):
         prefix = struct.pack('>H', len(_msg))
@@ -115,6 +103,7 @@ class ServerMgr:
         )
         logger.info('start server')
         while True:
+            await self.event_mgr.loop_service()
             await asyncio.sleep(5)
 
 
@@ -149,7 +138,6 @@ class DataClientEventMgr(QuicEventBase):
     def __init__(self):
         super().__init__()
         self.__sub_channels = set()
-        self.__msg_q = asyncio.Queue()
 
     def on_connected(self, _host_id: bytes):
         if self.__sub_channels:
@@ -177,16 +165,61 @@ class DataClientEventMgr(QuicEventBase):
 
 
 class DataServerEventMgr(QuicEventBase):
-    def __init__(self, _call_back):
+    def __init__(self):
         super().__init__()
-        self.call_back = _call_back
-        self.channel_dict = {}
-
-    def on_connected(self, _host_id: bytes):
-        self.call_back('start', _host_id)
+        self.sub_channels = {}
 
     def on_disconnected(self, _host_id: bytes):
-        self.call_back('stop', _host_id)
+        try:
+            asyncio.get_event_loop().create_task(
+                self.update_sub_channels(_host_id, list(self.sub_channels), 'unsub')
+            )
 
-    def on_stream(self, _data):
-        self.call_back('data', _data)
+        except Exception as e:
+            logger.error(e)
+
+    async def update_sub_channels(self, _host_id, _channels, _operation):
+        if not isinstance(_channels, list):
+            logger.error('{} is not list'.format(_channels))
+            return
+
+        async with asyncio.Lock():
+            if _operation == 'sub':
+                for channel in _channels:
+                    self.sub_channels.setdefault(channel, set()).add(_host_id)
+
+            else:
+                for channel in _channels:
+                    host_ids = self.sub_channels.get(channel, set())
+                    if _host_id not in host_ids:
+                        continue
+
+                    host_ids.remove(_host_id)
+                    if not host_ids:
+                        self.sub_channels.pop(channel)
+
+    async def loop_service(self):
+        while True:
+            host_id, msg = await self.get_data()
+            try:
+                sub_msg = json.loads(msg.decode())
+                if sub_msg['subject'] == 'subscribe':
+                    await self.update_sub_channels(host_id, sub_msg['msg'], 'sub')
+
+                elif sub_msg['subject'] == 'unsubscribe':
+                    await self.update_sub_channels(host_id, sub_msg['msg'], 'unsub')
+
+                else:
+                    logger.error('unknown subject: {}'.format(sub_msg['subject']))
+
+            except Exception as e:
+                logger.error(e)
+
+    async def publish(self, _channel, _msg):
+        host_ids = self.sub_channels.get(_channel)
+        if not host_ids:
+            return
+
+        tasks = [self.send_msg(v, _msg) for v in host_ids]
+        if tasks:
+            await asyncio.gather(*tasks)

@@ -346,7 +346,7 @@ if __name__ == '__main__':
     # rsp = loop.run_until_complete(coro)
     t1 = time.time()
     for client in client_list:
-        tasks.append(client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 1000))
+        tasks.append(client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 10000))
         # tasks.append(
         #     client.get_ts_batch_by_key(0, 'btc_usdt|binance_future|trade|close', start_timestamp, end_timestamp, 1000)
         # )

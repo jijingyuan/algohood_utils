@@ -4,6 +4,8 @@
 @file: asyncRedisClient.py
 @author: Jerry
 """
+import asyncio
+import time
 import redis.asyncio as redis
 from algoUtils.loggerUtil import generate_logger
 
@@ -142,7 +144,10 @@ class AsyncRedisClient:
         try:
             await redis_client.select(_db)
             ts = redis_client.ts()
+            t1 = time.time()
             batch = await ts.range(_key, _start_ts, _end_ts, count=_limit)
+            tmp = redis_client.connection_pool.connection_kwargs.values()
+            print('{}: {}'.format(':'.join([str(v) for v in tmp]), time.time() - t1))
             return batch or {}
 
         except Exception as e:
@@ -178,7 +183,10 @@ class AsyncRedisClient:
                 '{}={}'.format(k, v) if isinstance(v, str) else '{}=({})'.format(k, ','.join(v))
                 for k, v in _labels.items()
             ]
+            t1 = time.time()
             batch = await ts.mrevrange(start_ts, end_ts, filters=filters, count=_limit)
+            tmp = redis_client.connection_pool.connection_kwargs.values()
+            print('{}: {}'.format(':'.join([str(v) for v in tmp]), time.time() - t1))
             return batch or []
 
         except Exception as e:
@@ -199,7 +207,10 @@ class AsyncRedisClient:
                 '{}={}'.format(k, v) if isinstance(v, str) else '{}=({})'.format(k, ','.join(v))
                 for k, v in _labels.items()
             ]
+            t1 = time.time()
             batch = await ts.mrange(start_ts, end_ts, filters=filters, count=_limit)
+            tmp = redis_client.connection_pool.connection_kwargs.values()
+            print('{}: {}'.format(':'.join([str(v) for v in tmp]), time.time() - t1))
             return batch or []
 
         except Exception as e:
@@ -320,29 +331,29 @@ class AsyncRedisClient:
 
 
 if __name__ == '__main__':
-    import asyncio
-    import time
-
     loop = asyncio.get_event_loop()
 
-    client = AsyncRedisClient('localhost', 7001)
-    # data_shard = loop.run_until_complete(client.get_hash_all(0, 'data_shard'))
-    # client_list = [AsyncRedisClient(*k.decode().split(':')) for k in data_shard.keys()]
+    client = AsyncRedisClient('localhost', 9001)
+    data_shard = loop.run_until_complete(client.get_hash_all(0, 'data_shard'))
+    client_list = [AsyncRedisClient(*k.decode().split(':')) for k in data_shard.keys()]
     #
-    # tasks = []
+    tasks = []
     start_timestamp = '-'
-    end_timestamp = int(time.time() - 60 * 60 * 24 * 1.2)
-    # end_timestamp = '+'
-    labels = {'exchange': 'binance_future', 'field': 'close', 'pair': ['btc_usdt', 'eth_usdt']}
-    coro = client.get_ts_batch_by_labels_reverse(0, start_timestamp, end_timestamp, labels, 10)
-    rsp = loop.run_until_complete(coro)
-    # t1 = time.time()
-    # for client in client_list:
-    #     tasks.append(client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 100000))
-    #     # tasks.append(client.get_last_by_key(0, 'btc_usdt|binance_future|trade|close'))
+    # end_timestamp = int(time.time() - 60 * 60 * 24 * 1.2)
+    end_timestamp = '+'
+    labels = {'exchange': 'binance_future', 'field': 'close', 'pair': ['btc_usdt']}
+    # coro = client.get_ts_batch_by_labels_reverse(0, start_timestamp, end_timestamp, labels, 1000)
+    # rsp = loop.run_until_complete(coro)
+    t1 = time.time()
+    for client in client_list:
+        tasks.append(client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 1000))
+        # tasks.append(
+        #     client.get_ts_batch_by_key(0, 'btc_usdt|binance_future|trade|close', start_timestamp, end_timestamp, 1000)
+        # )
+        # tasks.append(client.get_last_by_key(0, 'btc_usdt|binance_future|trade|close'))
 
-    # loop.run_until_complete(asyncio.gather(*tasks))
-    # print(time.time() - t1)
+    rsp = loop.run_until_complete(asyncio.gather(*tasks))
+    print(time.time() - t1)
     # labels = {'exchange': 'binance_future'}
     # start_timestamp = int((time.time() - 60 * 60 * 12) * 1000000)
     # end_timestamp = int((time.time()) * 1000000)

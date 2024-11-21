@@ -16,15 +16,15 @@ setup(
     packages=find_packages(),  # 自动发现包目录
     install_requires=[
         'aioquic',
-        'psutil',
-        'requests',
-        'ujson',
-        'numpy',
-        'pandas',
+        'psutil==5.9.4',
+        'requests==2.22.0',
+        'ujson==5.7.0',
+        'numpy==1.24.2',
+        'pandas==1.5.3',
         'websockets==14',
         'redis==5.0.8',
         'influxdb-client==1.46.0',
-        'aiocsv',
+        'aiocsv==1.3.2',
         'aiohttp==3.10.6',
         'pyzmq==26.2.0',
         'tornado==6.4.1'

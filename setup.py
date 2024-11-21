@@ -21,7 +21,7 @@ setup(
         'ujson==5.7.0',
         'numpy==1.24.2',
         'pandas==1.5.3',
-        'websockets==14',
+        'websockets==13',
         'redis==5.0.8',
         'influxdb-client==1.46.0',
         'aiocsv==1.3.2',

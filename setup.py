@@ -15,7 +15,7 @@ setup(
     description="utils for algo modules",  # 包的简短描述
     packages=find_packages(),  # 自动发现包目录
     install_requires=[
-        'aioquic',
+        'aioquic==1.2.0',
         'psutil==5.9.4',
         'requests==2.22.0',
         'ujson==5.7.0',
@@ -27,6 +27,7 @@ setup(
         'aiocsv==1.3.2',
         'aiohttp==3.10.6',
         'pyzmq==26.2.0',
-        'tornado==6.4.1'
+        'tornado==6.4.1',
+        'aioredis==2.0.1',
     ],
 )

@@ -28,6 +28,6 @@ setup(
         'aiohttp==3.10.6',
         'pyzmq==26.2.0',
         'tornado==6.4.1',
-        'aioredis==2.0.1',
+        'aioredis==1.3.1',
     ],
 )

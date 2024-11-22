@@ -184,10 +184,7 @@ class AsyncRedisClient:
                 '{}={}'.format(k, v) if isinstance(v, str) else '{}=({})'.format(k, ','.join(v))
                 for k, v in _labels.items()
             ]
-            t1 = time.time()
             batch = await ts.mrevrange(start_ts, end_ts, filters=filters, count=_limit)
-            tmp = redis_client.connection_pool.connection_kwargs.values()
-            print('{}: {}'.format(':'.join([str(v) for v in tmp]), time.time() - t1))
             return batch or []
 
         except Exception as e:
@@ -208,10 +205,7 @@ class AsyncRedisClient:
                 '{}={}'.format(k, v) if isinstance(v, str) else '{}=({})'.format(k, ','.join(v))
                 for k, v in _labels.items()
             ]
-            t1 = time.time()
             batch = await ts.mrange(start_ts, end_ts, filters=filters, count=_limit)
-            tmp = redis_client.connection_pool.connection_kwargs.values()
-            print('{}: {}'.format(':'.join([str(v) for v in tmp]), time.time() - t1))
             return batch or []
 
         except Exception as e:

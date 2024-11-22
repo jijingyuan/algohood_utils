@@ -5,6 +5,7 @@
 @author: Jerry
 """
 import asyncio
+import random
 import time
 import redis.asyncio as redis
 from algoUtils.loggerUtil import generate_logger
@@ -296,6 +297,17 @@ class AsyncRedisClient:
         finally:
             await redis_client.aclose()
 
+    async def lrange(self, _db, _key, _start_index=0, _end_index=-1):
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            rsp = await redis_client.lrange(_key, _start_index, _end_index)
+            return rsp or []
+
+        except Exception as e:
+            logger.error(e)
+            return
+
     async def push(self, _db, _key, _batch: list) -> bool:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
@@ -307,12 +319,23 @@ class AsyncRedisClient:
             logger.error(e)
             return False
 
-    async def pull(self, _db, _key, _amount=1) -> list or None:
+    async def pull_nowait(self, _db, _key, _amount=1) -> list or None:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
             await redis_client.select(_db)
-            rsp = await redis_client.rpop(_key, _amount)
+            rsp = await redis_client.lpop(_key, _amount)
             return rsp or []
+
+        except Exception as e:
+            logger.error(e)
+            return
+
+    async def pull_block(self, _db, _key, _timeout=0) -> list or None:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            rsp = await redis_client.blpop([_key], _timeout)
+            return [rsp[1]]
 
         except Exception as e:
             logger.error(e)
@@ -334,26 +357,26 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
     client = AsyncRedisClient('localhost', 9001)
-    data_shard = loop.run_until_complete(client.get_hash_all(0, 'data_shard'))
-    client_list = [AsyncRedisClient(*k.decode().split(':')) for k in data_shard.keys()]
+    # data_shard = loop.run_until_complete(client.get_hash_all(0, 'data_shard'))
+    # client_list = [AsyncRedisClient(*k.decode().split(':')) for k in data_shard.keys()]
+    # #
+    # tasks = []
+    # start_timestamp = '-'
+    # # end_timestamp = int(time.time() - 60 * 60 * 24 * 1.2)
+    # end_timestamp = '+'
+    # labels = {'exchange': 'binance_future', 'field': 'close', 'pair': ['btc_usdt']}
+    # # coro = client.get_ts_batch_by_labels_reverse(0, start_timestamp, end_timestamp, labels, 1000)
+    # # rsp = loop.run_until_complete(coro)
+    # t1 = time.time()
+    # for client in client_list:
+    #     tasks.append(client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 10000))
+    #     # tasks.append(
+    #     #     client.get_ts_batch_by_key(0, 'btc_usdt|binance_future|trade|close', start_timestamp, end_timestamp, 1000)
+    #     # )
+    #     # tasks.append(client.get_last_by_key(0, 'btc_usdt|binance_future|trade|close'))
     #
-    tasks = []
-    start_timestamp = '-'
-    # end_timestamp = int(time.time() - 60 * 60 * 24 * 1.2)
-    end_timestamp = '+'
-    labels = {'exchange': 'binance_future', 'field': 'close', 'pair': ['btc_usdt']}
-    # coro = client.get_ts_batch_by_labels_reverse(0, start_timestamp, end_timestamp, labels, 1000)
-    # rsp = loop.run_until_complete(coro)
-    t1 = time.time()
-    for client in client_list:
-        tasks.append(client.get_ts_batch_by_labels(0, start_timestamp, end_timestamp, labels, 10000))
-        # tasks.append(
-        #     client.get_ts_batch_by_key(0, 'btc_usdt|binance_future|trade|close', start_timestamp, end_timestamp, 1000)
-        # )
-        # tasks.append(client.get_last_by_key(0, 'btc_usdt|binance_future|trade|close'))
-
-    rsp = loop.run_until_complete(asyncio.gather(*tasks))
-    print(time.time() - t1)
+    # rsp = loop.run_until_complete(asyncio.gather(*tasks))
+    # print(time.time() - t1)
     # labels = {'exchange': 'binance_future'}
     # start_timestamp = int((time.time() - 60 * 60 * 12) * 1000000)
     # end_timestamp = int((time.time()) * 1000000)
@@ -362,7 +385,12 @@ if __name__ == '__main__':
 
     # key = 'btc_usdt|binance_future|trade|timestamp'
     # coro = client.get_ts_batch_by_key(0, key, start_timestamp, end_timestamp, 1000)
-    # coro = client.pull(4, '1730094018600676_test', 500)
+    # for _ in range(10):
+    #     coro = client.push(0, 'test', [random.random()])
+    #     loop.run_until_complete(coro)
+
+    # coro = client.pull_nowait(0, 'test', 1)
+    # coro = client.lrange(0, 'test')
     # rsp = loop.run_until_complete(coro)
 
     # pairs = ['eth_usdt', 'btc_usdt']

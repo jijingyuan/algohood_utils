@@ -5,9 +5,9 @@
 @author: Jerry
 """
 import asyncio
-import random
-import time
+
 import redis.asyncio as redis
+
 from algoUtils.loggerUtil import generate_logger
 
 logger = generate_logger(level='INFO')
@@ -145,10 +145,7 @@ class AsyncRedisClient:
         try:
             await redis_client.select(_db)
             ts = redis_client.ts()
-            t1 = time.time()
             batch = await ts.range(_key, _start_ts, _end_ts, count=_limit)
-            tmp = redis_client.connection_pool.connection_kwargs.values()
-            print('{}: {}'.format(':'.join([str(v) for v in tmp]), time.time() - t1))
             return batch or {}
 
         except Exception as e:
@@ -302,11 +299,12 @@ class AsyncRedisClient:
             logger.error(e)
             return
 
-    async def push(self, _db, _key, _batch: list) -> bool:
+    async def push(self, _db, _key, _batch) -> bool:
         redis_client = redis.Redis(connection_pool=self.pool)
+        batch = [_batch] if isinstance(_batch, str) else _batch
         try:
             await redis_client.select(_db)
-            await redis_client.rpush(_key, *_batch)
+            await redis_client.rpush(_key, *batch)
             return True
 
         except Exception as e:

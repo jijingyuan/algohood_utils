@@ -29,5 +29,7 @@ setup(
         'pyzmq==26.2.0',
         'tornado==6.4.1',
         'aioredis==1.3.1',
+        'aiofiles==24.1.0',
+        'msgspec==0.18.6'
     ],
 )

@@ -7,6 +7,7 @@
 import abc
 import asyncio
 import uuid
+from decimal import Decimal
 from queue import PriorityQueue
 from typing import Optional, List, Dict, AnyStr
 
@@ -138,6 +139,7 @@ class OrderBase:
 
     def __init__(self, _exec_dict):
         self.exec_dict = _exec_dict
+        self.precision_dict = {}
         self.current_timestamp = None
         self._orders = {}
         self._sniffers = {}
@@ -155,6 +157,49 @@ class OrderBase:
 
     def get_sniffer_info(self, _order_id):
         return self._sniffers.get(_order_id)
+
+    async def update_precision_dict(self, _timestamp, _symbol):
+        if self.precision_dict.get(_symbol) is not None:
+            return
+
+        pair, exchange = _symbol.split('|')
+        exec_mgr = self.exec_dict[exchange]
+        data = await exec_mgr.data_mgr.get_data_given_start_amount('trade', _symbol, _timestamp, 10)
+
+        close_list = []
+        amount_list = []
+        for x in data.values():
+            for y in x:
+                for k, v in y.items():
+                    if 'amount' in k:
+                        amount_list.extend([amount[1] for amount in v[1]])
+                    else:
+                        close_list.extend([close[1] for close in v[1]])
+
+        self.precision_dict[_symbol] = {
+            'price': self.max_decimal_places(close_list),
+            'amount': self.max_decimal_places(amount_list)
+        }
+
+    @staticmethod
+    def max_decimal_places(numbers) -> int:
+        decimals = [Decimal(str(num)) for num in numbers]
+        res = max(-d.as_tuple().exponent if d.as_tuple().exponent < 0 else 0 for d in decimals)
+        return res
+
+    def format_amount(self, _symbol, _amount, _upper=True):
+        amount_p = self.precision_dict[_symbol]['amount']
+        factor = 10 ** amount_p
+        int_amount = int(_amount * factor)
+        bias = 1 if _upper else 0
+        return round((int_amount + bias) / factor, amount_p)
+
+    def format_price(self, _symbol, _price, _upper=True):
+        amount_p = self.precision_dict[_symbol]['price']
+        factor = 10 ** amount_p
+        int_amount = int(_price * factor)
+        bias = 1 if _upper else 0
+        return round((int_amount + bias) / factor, amount_p)
 
     def _update_send_timestamp(self, _order_id, _send_timestamp=None, _receive_timestamp=None):
         if _send_timestamp is not None:

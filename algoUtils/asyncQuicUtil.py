@@ -122,7 +122,7 @@ class ClientMgr:
                         _port,
                         configuration=configuration,
                         create_protocol=lambda *args, **kwargs: MyProtocol(
-                            *args, **kwargs, _event_mgr=self.event_mgr, _is_client=False
+                            *args, **kwargs, _event_mgr=self.event_mgr, _is_client=True
                         ),
                 ) as protocol:
                     while True:

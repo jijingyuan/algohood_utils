@@ -140,6 +140,17 @@ class AsyncRedisClient:
         finally:
             await redis_client.aclose()
 
+    async def hash_incr(self, _db, _key, _field, _amount=1) -> bool:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            await redis_client.hincrby(_key, _field, _amount)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
     async def get_ts_batch_by_key(self, _db, _key, _start_ts, _end_ts, _limit=None) -> list or None:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
@@ -288,7 +299,42 @@ class AsyncRedisClient:
         finally:
             await redis_client.aclose()
 
-    async def lrange(self, _db, _key, _start_index=0, _end_index=-1):
+    async def add_set(self, _db, _key, _batch) -> bool:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        batch = [_batch] if isinstance(_batch, str) else _batch
+        try:
+            await redis_client.select(_db)
+            await redis_client.sadd(_key, *batch)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
+    async def get_set(self, _db, _key) -> list or None:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        try:
+            await redis_client.select(_db)
+            rsp = await redis_client.smembers(_key)
+            return rsp or []
+
+        except Exception as e:
+            logger.error(e)
+            return
+
+    async def pop_set(self, _db, _key, _batch) -> bool:
+        redis_client = redis.Redis(connection_pool=self.pool)
+        batch = [_batch] if isinstance(_batch, str) else _batch
+        try:
+            await redis_client.select(_db)
+            await redis_client.srem(_key, *batch)
+            return True
+
+        except Exception as e:
+            logger.error(e)
+            return False
+
+    async def lrange(self, _db, _key, _start_index=0, _end_index=-1) -> list or None:
         redis_client = redis.Redis(connection_pool=self.pool)
         try:
             await redis_client.select(_db)

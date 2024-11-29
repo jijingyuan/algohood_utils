@@ -55,7 +55,7 @@ class SignalBase:
         generate signal to execution module
         :param _data: data source
         :return: [{
-            'bind_id': str(uuid),
+            'batch_id': str(uuid),
             'symbol': 'btc_usdt|binance_future',
             'action': 'open' or 'close'
             'position': 'long' or 'short'
@@ -210,7 +210,7 @@ class OrderBase:
 
     def _generate_target_sniffer(
             self,
-            _bind_id,
+            _batch_id,
             _symbol,
             _exchange,
             _target_price,
@@ -222,7 +222,7 @@ class OrderBase:
         order_id = str(uuid.uuid4())
         _, exchange = _symbol.split('|')
         self._sniffers[order_id] = {
-            'bind_id': _bind_id,
+            'batch_id': _batch_id,
             'order_id': order_id,
             'symbol': _symbol,
             'exchange': _exchange,
@@ -236,7 +236,7 @@ class OrderBase:
 
     def _generate_trailing_sniffer(
             self,
-            _bind_id,
+            _batch_id,
             _symbol,
             _exchange,
             _operator,
@@ -249,7 +249,7 @@ class OrderBase:
         order_id = str(uuid.uuid4())
         _, exchange = _symbol.split('|')
         self._sniffers[order_id] = {
-            'bind_id': _bind_id,
+            'batch_id': _batch_id,
             'order_id': order_id,
             'symbol': _symbol,
             'exchange': _exchange,
@@ -268,7 +268,7 @@ class OrderBase:
 
     def _generate_order(
             self,
-            _bind_id,
+            _batch_id,
             _symbol,
             _exchange,
             _order_type,
@@ -284,7 +284,7 @@ class OrderBase:
     ):
         order_id = str(uuid.uuid4())
         self._orders[order_id] = {
-            'bind_id': _bind_id,
+            'batch_id': _batch_id,
             'order_id': order_id,
             'client_id': _client_id,
             'symbol': _symbol,
@@ -320,7 +320,7 @@ class OrderBase:
     @abc.abstractmethod
     async def place_order(
             self,
-            _bind_id,
+            _batch_id,
             _symbol,
             _order_type,
             _action,
@@ -337,7 +337,7 @@ class OrderBase:
     @abc.abstractmethod
     async def place_target_sniffer(
             self,
-            _bind_id,
+            _batch_id,
             _symbol,
             _operator,
             _target_price,
@@ -349,7 +349,7 @@ class OrderBase:
     @abc.abstractmethod
     async def place_trailing_sniffer(
             self,
-            _bind_id,
+            _batch_id,
             _symbol,
             _operator,
             _back_pct,

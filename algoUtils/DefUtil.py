@@ -77,7 +77,7 @@ class TargetBase:
         return
 
 
-class OptimizeBase:
+class OptimizerBase:
 
     def __init__(self):
         self.__data_mgr = None
@@ -137,185 +137,32 @@ class OrderBase:
         'error': 2
     }
 
-    def __init__(self, _exec_dict):
-        self.exec_dict = _exec_dict
-        self.precision_dict = {}
-        self.current_timestamp = None
-        self._orders = {}
-        self._sniffers = {}
-        self._status_info = {}
-        self._price = {}
+    def __init__(self):
+        self.__precision_dict = {}
+        self.__orders = {}
+        self.__sniffers = {}
 
-    def update_current_timestamp(self, _timestamp):
-        self.current_timestamp = _timestamp
+    @abc.abstractmethod
+    def get_trading_amount(self, _symbol):
+        pass
 
-    def update_symbol_price(self, _symbol, _price):
-        self._price[_symbol] = _price
-
-    def get_order_info(self, _order_id):
-        return self._orders.get(_order_id)
-
-    def get_sniffer_info(self, _order_id):
-        return self._sniffers.get(_order_id)
-
-    async def update_precision_dict(self, _timestamp, _symbol):
-        if self.precision_dict.get(_symbol) is not None:
-            return
-
-        pair, exchange = _symbol.split('|')
-        exec_mgr = self.exec_dict[exchange]
-        data = await exec_mgr.data_mgr.get_data_given_start_amount('trade', _symbol, _timestamp, 10)
-
-        close_list = []
-        amount_list = []
-        for x in data.values():
-            for y in x:
-                for k, v in y.items():
-                    if 'amount' in k:
-                        amount_list.extend([amount[1] for amount in v[1]])
-                    else:
-                        close_list.extend([close[1] for close in v[1]])
-
-        self.precision_dict[_symbol] = {
-            'price': self.max_decimal_places(close_list),
-            'amount': self.max_decimal_places(amount_list)
-        }
-
-    @staticmethod
-    def max_decimal_places(numbers) -> int:
-        decimals = [Decimal(str(num)) for num in numbers]
-        res = max(-d.as_tuple().exponent if d.as_tuple().exponent < 0 else 0 for d in decimals)
-        return res
+    @abc.abstractmethod
+    def get_current_timestamp(self):
+        pass
 
     def format_amount(self, _symbol, _amount, _upper=True):
-        amount_p = self.precision_dict[_symbol]['amount']
+        amount_p = self.__precision_dict[_symbol]['amount']
         factor = 10 ** amount_p
         int_amount = int(_amount * factor)
         bias = 1 if _upper else 0
         return round((int_amount + bias) / factor, amount_p)
 
     def format_price(self, _symbol, _price, _upper=True):
-        amount_p = self.precision_dict[_symbol]['price']
+        amount_p = self.__precision_dict[_symbol]['price']
         factor = 10 ** amount_p
         int_amount = int(_price * factor)
         bias = 1 if _upper else 0
         return round((int_amount + bias) / factor, amount_p)
-
-    def _update_send_timestamp(self, _order_id, _send_timestamp=None, _receive_timestamp=None):
-        if _send_timestamp is not None:
-            self._orders[_order_id]['send_timestamp'] = _send_timestamp
-
-        if _receive_timestamp is not None:
-            self._orders[_order_id]['receive_timestamp'] = _receive_timestamp
-
-    def _generate_target_sniffer(
-            self,
-            _batch_id,
-            _symbol,
-            _exchange,
-            _target_price,
-            _operator,
-            _expire=None,
-            _delay=None
-    ):
-
-        order_id = str(uuid.uuid4())
-        _, exchange = _symbol.split('|')
-        self._sniffers[order_id] = {
-            'batch_id': _batch_id,
-            'order_id': order_id,
-            'symbol': _symbol,
-            'exchange': _exchange,
-            'target_price': _target_price,
-            'operator': _operator,
-            'expire': _expire,
-            'delay': _delay,
-        }
-
-        return order_id
-
-    def _generate_trailing_sniffer(
-            self,
-            _batch_id,
-            _symbol,
-            _exchange,
-            _operator,
-            _back_pct,
-            _smooth=None,
-            _expire=None,
-            _delay=None
-    ):
-
-        order_id = str(uuid.uuid4())
-        _, exchange = _symbol.split('|')
-        self._sniffers[order_id] = {
-            'batch_id': _batch_id,
-            'order_id': order_id,
-            'symbol': _symbol,
-            'exchange': _exchange,
-            'operator': _operator,
-            'back_pct': _back_pct,
-            '_smooth': _smooth,
-            'expire': _expire,
-            'delay': _delay,
-        }
-
-        return order_id
-
-    @abc.abstractmethod
-    async def update_events(self, _event_q: PriorityQueue):
-        pass
-
-    def _generate_order(
-            self,
-            _batch_id,
-            _symbol,
-            _exchange,
-            _order_type,
-            _action,
-            _position,
-            _amount,
-            _feature=None,
-            _expire=None,
-            _delay=None,
-            _condition=None,
-            _price=None,
-            _client_id=None,
-    ):
-        order_id = str(uuid.uuid4())
-        self._orders[order_id] = {
-            'batch_id': _batch_id,
-            'order_id': order_id,
-            'client_id': _client_id,
-            'symbol': _symbol,
-            'exchange': _exchange,
-            'order_type': _order_type,
-            'action': _action,
-            'position': _position,
-            'amount': _amount,
-            'feature': _feature,
-            'expire': _expire,
-            'delay': _delay,
-            'condition': _condition,
-            'price': _price,
-            'current_timestamp': self.current_timestamp,
-            'execute_price': None,
-            'execute_amount': 0
-        }
-        return order_id
-
-    @abc.abstractmethod
-    def update_status_info(
-            self,
-            _order_id,
-            _order_type,
-            _status,
-            _last_timestamp,
-            _local_timestamp,
-            _execute_price=None,
-            _execute_amount=None
-    ):
-        pass
 
     @abc.abstractmethod
     async def place_order(
@@ -360,14 +207,6 @@ class OrderBase:
         pass
 
     @abc.abstractmethod
-    async def edit_order(self, _order_id, **kwargs):
-        pass
-
-    @abc.abstractmethod
-    async def edit_sniffer(self, _sniffer_id, **kwargs):
-        pass
-
-    @abc.abstractmethod
     async def cancel_order(self, _order_id, _delay=None):
         pass
 
@@ -375,9 +214,201 @@ class OrderBase:
     async def cancel_sniffer(self, _order_id, _delay=None):
         pass
 
-    @abc.abstractmethod
-    def get_trading_amount(self, _symbol):
-        pass
+    def _get_order_info(self, _order_id):
+        return self.__orders.get(_order_id)
+
+    def _get_sniffer_info(self, _order_id):
+        return self.__sniffers.get(_order_id)
+
+    def _set_precision_dict(self, _symbol, _price, _amount):
+        self.__precision_dict[_symbol] = {'price': _price, 'amount': _amount}
+
+    def _get_precision_dict(self, _symbol):
+        return self.__precision_dict.get(_symbol)
+
+    def _update_round_timestamp(self, _order_id, _send_timestamp=None, _receive_timestamp=None):
+        if _send_timestamp is not None:
+            self.__orders[_order_id]['send_timestamp'] = _send_timestamp
+
+        if _receive_timestamp is not None:
+            self.__orders[_order_id]['receive_timestamp'] = _receive_timestamp
+
+    def _generate_target_sniffer(
+            self,
+            _batch_id,
+            _symbol,
+            _exchange,
+            _target_price,
+            _operator,
+            _smooth=None,
+            _expire=None,
+            _delay=None
+    ):
+
+        order_id = str(uuid.uuid4())
+        _, exchange = _symbol.split('|')
+        self.__sniffers[order_id] = {
+            'order_id': order_id,
+            'batch_id': _batch_id,
+            'symbol': _symbol,
+            'exchange': _exchange,
+            'target_price': _target_price,
+            'operator': _operator,
+            'smooth': _smooth,
+            'expire': _expire,
+            'delay': _delay,
+            'status': 'pending',
+            'last_timestamp': None,
+            'local_timestamp': None,
+        }
+
+        return order_id
+
+    def _generate_trailing_sniffer(
+            self,
+            _batch_id,
+            _symbol,
+            _exchange,
+            _operator,
+            _back_pct,
+            _smooth=None,
+            _expire=None,
+            _delay=None
+    ):
+
+        order_id = str(uuid.uuid4())
+        _, exchange = _symbol.split('|')
+        self.__sniffers[order_id] = {
+            'order_id': order_id,
+            'batch_id': _batch_id,
+            'symbol': _symbol,
+            'exchange': _exchange,
+            'operator': _operator,
+            'back_pct': _back_pct,
+            'smooth': _smooth,
+            'expire': _expire,
+            'delay': _delay,
+            'status': 'pending',
+            'last_timestamp': None,
+            'local_timestamp': None,
+        }
+
+        return order_id
+
+    def _generate_order(
+            self,
+            _batch_id,
+            _symbol,
+            _exchange,
+            _order_type,
+            _action,
+            _position,
+            _amount,
+            _feature=None,
+            _expire=None,
+            _delay=None,
+            _condition=None,
+            _price=None,
+    ):
+        order_id = str(uuid.uuid4())
+        self.__orders[order_id] = {
+            'order_id': order_id,
+            'batch_id': _batch_id,
+            'symbol': _symbol,
+            'exchange': _exchange,
+            'order_type': _order_type,
+            'action': _action,
+            'position': _position,
+            'amount': _amount,
+            'feature': _feature,
+            'expire': _expire,
+            'delay': _delay,
+            'condition': _condition,
+            'price': _price,
+            'status': 'pending',
+            'current_timestamp': self.get_current_timestamp(),
+            'send_timestamp': None,
+            'receive_timestamp': None,
+            'last_timestamp': None,
+            'local_timestamp': None,
+            'execute_price': None,
+            'execute_amount': 0,
+            'fee_rate': None,
+            'msg': None
+        }
+        return order_id
+
+    def _remove_order(self, _order_id):
+        self.__orders.pop(_order_id, None)
+
+    def _remove_sniffer(self, _order_id):
+        self.__sniffers.pop(_order_id, None)
+
+    def _update_order_info(
+            self,
+            _order_id,
+            _status,
+            _last_timestamp,
+            _local_timestamp,
+            _execute_price=None,
+            _execute_amount=None,
+            _fee_rate=None,
+            _msg=None
+    ):
+        order_info = self.__orders.get(_order_id)
+        if order_info is None:
+            return
+
+        if self.ORDER_STATUS[_status] < self.ORDER_STATUS[order_info['status']]:
+            return
+
+        elif self.ORDER_STATUS[_status] == self.ORDER_STATUS[order_info['status']]:
+            if _execute_amount <= (order_info['execute_amount'] or 0):
+                return
+
+        order_info['status'] = _status
+        order_info['last_timestamp'] = float(_last_timestamp)
+        order_info['local_timestamp'] = float(_local_timestamp)
+
+        if _execute_price is not None:
+            order_info['execute_price'] = float(_execute_price)
+
+        if _execute_amount is not None:
+            order_info['execute_amount'] = float(_execute_amount)
+
+        if _fee_rate is not None:
+            order_info['fee_rate'] = _fee_rate
+
+        if _msg is not None:
+            order_info['msg'] = _msg
+
+        if self.ORDER_STATUS[_status] >= 5:
+            self.__orders.pop(_order_id)
+
+        return order_info
+
+    def _update_sniffer_info(
+            self,
+            _order_id,
+            _status,
+            _last_timestamp,
+            _local_timestamp,
+    ):
+        sniffer_info = self.__sniffers.get(_order_id)
+        if sniffer_info is None:
+            return
+
+        if self.ORDER_STATUS[_status] < self.ORDER_STATUS[sniffer_info['status']]:
+            return
+
+        sniffer_info['status'] = _status
+        sniffer_info['last_timestamp'] = float(_last_timestamp)
+        sniffer_info['local_timestamp'] = float(_local_timestamp)
+
+        if self.SNIFFER_STATUS[_status] >= 2:
+            self.__sniffers.pop(_order_id)
+
+        return sniffer_info
 
 
 class StrategyBase:
@@ -385,11 +416,9 @@ class StrategyBase:
         self.order_mgr: Optional[OrderBase] = None
         self.logger: Optional[OnlineLogger] = None
 
-    def update_order_mgr(self, _order_mgr):
+    def init_mgr(self, _order_mgr, _logger_type):
         self.order_mgr = _order_mgr
-
-    def update_logger(self, _type):
-        self.logger = OnlineLogger(_type)
+        self.logger = OnlineLogger(_logger_type)
 
     @abc.abstractmethod
     async def on_signal(self, _signal):

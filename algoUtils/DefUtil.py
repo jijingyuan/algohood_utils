@@ -236,6 +236,8 @@ class OrderBase:
     def _generate_target_sniffer(
             self,
             _batch_id,
+            _signal_name,
+            _execute_name,
             _symbol,
             _exchange,
             _target_price,
@@ -250,6 +252,8 @@ class OrderBase:
         self.__sniffers[order_id] = {
             'order_id': order_id,
             'batch_id': _batch_id,
+            'signal_name': _signal_name,
+            'execute_name': _execute_name,
             'symbol': _symbol,
             'exchange': _exchange,
             'target_price': _target_price,
@@ -267,6 +271,8 @@ class OrderBase:
     def _generate_trailing_sniffer(
             self,
             _batch_id,
+            _signal_name,
+            _execute_name,
             _symbol,
             _exchange,
             _operator,
@@ -281,6 +287,8 @@ class OrderBase:
         self.__sniffers[order_id] = {
             'order_id': order_id,
             'batch_id': _batch_id,
+            'signal_name': _signal_name,
+            'execute_name': _execute_name,
             'symbol': _symbol,
             'exchange': _exchange,
             'operator': _operator,
@@ -298,6 +306,8 @@ class OrderBase:
     def _generate_order(
             self,
             _batch_id,
+            _signal_name,
+            _execute_name,
             _symbol,
             _exchange,
             _order_type,
@@ -314,6 +324,8 @@ class OrderBase:
         self.__orders[order_id] = {
             'order_id': order_id,
             'batch_id': _batch_id,
+            'signal_name': _signal_name,
+            'execute_name': _execute_name,
             'symbol': _symbol,
             'exchange': _exchange,
             'order_type': _order_type,

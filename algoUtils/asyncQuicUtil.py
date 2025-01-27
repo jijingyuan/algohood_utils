@@ -17,7 +17,7 @@ from aioquic.asyncio.server import serve
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import StreamDataReceived, ConnectionTerminated, HandshakeCompleted
 
-from .DefUtil import QuicEventBase
+from .defUtil import QuicEventBase
 from .loggerUtil import generate_logger
 
 logger = generate_logger(level='DEBUG')

@@ -14,6 +14,18 @@ def local_datetime_timestamp(_datetime_str):
     return calendar.timegm(t) - 60 * 60 * 8
 
 
+def date_list_given_start_end(_start_str, _end_str):
+    date_list = []
+    start_date = datetime.datetime.strptime(_start_str, '%Y-%m-%d')
+    end_date = datetime.datetime.strptime(_end_str, '%Y-%m-%d')
+    current_date = start_date
+    while current_date <= end_date:
+        date_list.append(current_date.strftime('%Y-%m-%d'))
+        current_date += datetime.timedelta(days=1)
+
+    return date_list
+
+
 def timestamp_local_datetime(_timestamp):
     time_tuple = time.gmtime(int(_timestamp) + 8 * 60 * 60)
     return time.strftime('%Y-%m-%d %H:%M:%S', time_tuple)

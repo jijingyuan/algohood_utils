@@ -30,6 +30,8 @@ setup(
         'tornado==6.4.1',
         'aioredis==1.3.1',
         'aiofiles==24.1.0',
-        'msgspec==0.18.6'
+        'msgspec==0.18.6',
+        'sklearn==1.3.1',
+        'lightgbm==4.1.1'
     ],
 )

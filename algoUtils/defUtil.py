@@ -92,7 +92,7 @@ class InterceptBase(abc.ABC):  # 继承 abc.ABC
         pass  # 使用 pass 而不是 return
 
     @abc.abstractmethod
-    def generate_target(self, _signal_id: int, _signal: Dict[str, str], _data: Dict[str, List[List]]) -> Optional[Dict]:
+    def generate_target(self, _signal_id: int, _signal: Dict[str, str], _data: Dict[str, List[List]]) -> Optional[Dict[str, float]]:
         """
         generate target dict that could be used as input in generate_model
         :param _signal_id: str(uuid)

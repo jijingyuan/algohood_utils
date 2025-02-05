@@ -31,7 +31,7 @@ setup(
         'aioredis==1.3.1',
         'aiofiles==24.1.0',
         'msgspec==0.18.6',
-        'sklearn==1.3.1',
-        'lightgbm==4.1.1'
+        'scikit-learn==1.6.1',
+        'lightgbm==4.5.0'
     ],
 )

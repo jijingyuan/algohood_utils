@@ -13,6 +13,10 @@ def local_datetime_timestamp(_datetime_str):
     t = time.strptime(_datetime_str, '%Y-%m-%d %H:%M:%S')
     return calendar.timegm(t) - 60 * 60 * 8
 
+def local_date_timestamp(_date_str):
+    t = time.strptime(_date_str, '%Y-%m-%d')
+    return calendar.timegm(t) - 60 * 60 * 8
+
 
 def date_list_given_start_end(_start_str, _end_str):
     date_list = []
